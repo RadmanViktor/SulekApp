@@ -12,25 +12,17 @@ import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 type Props = BottomTabScreenProps<RootTabParamList, "CreateWorkoutScreen">;
 
 export default function CreateWorkoutScreen({route}: Props) {
- //   const { date } = route.params; // string
-  
   const [name, setName] = useState('');
+  const [date, setDate] = useState<Date>(() => paramDate ?? new Date());
 
-  // Läs parametern säkert
   const paramDate = useMemo(() => {
     const raw = route.params?.date;
     if (!raw) return null;
 
-    // Om du skickar "2026-01-21" -> Date("2026-01-21") blir ofta UTC-midnight
-    // vilket kan ge “fel dag” lokalt. Se Fix 2 nedan.
     const d = new Date(raw);
     return isNaN(d.getTime()) ? null : d;
   }, [route.params?.date]);
 
-  // Sätt initialt datum (fallback = idag)
-  const [date, setDate] = useState<Date>(() => paramDate ?? new Date());
-
-  // Om route param ändras efter mount: uppdatera en gång
   useEffect(() => {
     if (paramDate) setDate(paramDate);
   }, [paramDate]);
