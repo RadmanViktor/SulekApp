@@ -25,25 +25,26 @@ export default function App() {
         <Tab.Navigator
           screenOptions={({ route }) => ({
             tabBarActiveTintColor: '#14B8A6',
+
             // TABBAR-STYLE
-    tabBarStyle: {
-      height: 88,              // ger bättre vertikal balans på iPhone med safe area
-      paddingTop: 8,
-      paddingBottom: 18,       // optiskt centrerat ovanför home indicator
-      borderTopWidth: 1,
-      borderTopColor: '#E5E7EB',
-    },
+            tabBarStyle: {
+              height: 88,              // ger bättre vertikal balans på iPhone med safe area
+              paddingTop: 8,
+              paddingBottom: 18,       // optiskt centrerat ovanför home indicator
+              borderTopWidth: 1,
+              borderTopColor: '#E5E7EB',
+            },
 
-    // ITEM-STYLE (centrering)
-    tabBarItemStyle: {
-      paddingVertical: 6,
-    },
+            // ITEM-STYLE (centrering)
+            tabBarItemStyle: {
+              paddingVertical: 6,
+            },
 
-    // ICON/LABEL FINJUSTERING
-    tabBarLabelStyle: {
-      fontSize: 12,
-      marginTop: 2,
-    },
+            // ICON/LABEL FINJUSTERING
+            tabBarLabelStyle: {
+              fontSize: 12,
+              marginTop: 2,
+            },
 
             headerShown: false,
             tabBarHideOnKeyboard: true,
