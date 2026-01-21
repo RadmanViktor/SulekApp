@@ -3,9 +3,14 @@ import { StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CalendarList } from 'react-native-calendars';
 import '../config/calendarLocale'; 
+import { useNavigation } from '@react-navigation/native';
+import { RootTabParamList } from '../navigations/types';
+import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 
+type CalenderNav = BottomTabNavigationProp<RootTabParamList, "CalenderScreen">;
 
 export default function CalendarScreen() {
+  const navigation = useNavigation<CalenderNav>();
   const workoutDates = ['2026-01-21', '2026-01-27'];
 
   const markedDates = useMemo(() => {
@@ -25,9 +30,7 @@ export default function CalendarScreen() {
         pastScrollRange={12}
         futureScrollRange={12}
         showScrollIndicator={false}
-        onDayPress={(day) => {
-          console.log(day.dateString);
-        }}
+        onDayPress={(day) => navigation.navigate("CreateWorkoutScreen", {date: day.dateString})} 
         theme={{
           todayTextColor: '#14B8A6',
           arrowColor: '#14B8A6',

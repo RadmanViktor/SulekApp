@@ -38,8 +38,7 @@ export default function Dropdown({
     );
   }
 
-   function setBoth(next: string[]) {
-    console.log('From dropdown component' + next)
+  function setBoth(next: string[]) {
     setSelected(next);
     onChange?.(next); // meddela parent
   }

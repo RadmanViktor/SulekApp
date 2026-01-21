@@ -9,8 +9,9 @@ import { useFonts, Poppins_400Regular } from '@expo-google-fonts/poppins';
 import HomeScreen from './screens/HomeScreen';
 import CreateWorkoutScreen from './screens/CreateWorkoutScreen';
 import CalenderScreen from './screens/CalenderScreen';
+import { RootTabParamList } from './navigations/types';
 
-const Tab = createBottomTabNavigator();
+const Tab = createBottomTabNavigator<RootTabParamList>();
 
 export default function App() {
   const [fontsLoaded] = useFonts({
@@ -51,11 +52,11 @@ export default function App() {
             tabBarIcon: ({ focused, size, color }) => {
               let iconName: keyof typeof Ionicons.glyphMap = 'home-outline';
 
-              if (route.name === 'Home') {
+              if (route.name === 'HomeScreen') {
                 iconName = focused ? 'home' : 'home-outline';
-              } else if (route.name === 'New') {
+              } else if (route.name === 'CreateWorkoutScreen') {
                 iconName = focused ? 'add-circle' : 'add-circle-outline';
-              } else if (route.name === 'Calender') {
+              } else if (route.name === 'CalenderScreen') {
                 iconName = focused ? 'calendar' : 'calendar-outline';
               }
 
@@ -63,9 +64,9 @@ export default function App() {
             },
           })}
         >
-          <Tab.Screen name="Home" component={HomeScreen} options={{title: 'Hem'}}/>
-          <Tab.Screen name="New" component={CreateWorkoutScreen} options={{ title: 'Nytt' }} />
-          <Tab.Screen name="Calender" component={CalenderScreen} options={{ title: 'Kalender' }} />
+          <Tab.Screen name="HomeScreen" component={HomeScreen} options={{title: 'Hem'}}/>
+          <Tab.Screen name="CreateWorkoutScreen" component={CreateWorkoutScreen} options={{ title: 'Nytt' }} />
+          <Tab.Screen name="CalenderScreen" component={CalenderScreen} options={{ title: 'Kalender' }} />
         </Tab.Navigator>
       </NavigationContainer>
     </SafeAreaProvider>

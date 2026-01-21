@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, View, Text, TextInput, TouchableOpacity, ScrollView, Platform, StatusBar, Pressable } from 'react-native';
 import { DropItem } from '../components/Dropdown';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -6,14 +6,38 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Dropdown from '../components/Dropdown';
 import RNDateTimePicker from '@react-native-community/datetimepicker';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { RootTabParamList } from '../navigations/types';
+import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 
-export default function CreateWorkoutScreen() {
+type Props = BottomTabScreenProps<RootTabParamList, "CreateWorkoutScreen">;
+
+export default function CreateWorkoutScreen({route}: Props) {
+ //   const { date } = route.params; // string
+  
   const [name, setName] = useState('');
-  const [date, setDate] = useState(new Date(1598051730000));
 
-  const onChange = (event: any, selectedDate: any) => {
-    const currentDate = selectedDate;
-    setDate(currentDate);
+  // Läs parametern säkert
+  const paramDate = useMemo(() => {
+    const raw = route.params?.date;
+    if (!raw) return null;
+
+    // Om du skickar "2026-01-21" -> Date("2026-01-21") blir ofta UTC-midnight
+    // vilket kan ge “fel dag” lokalt. Se Fix 2 nedan.
+    const d = new Date(raw);
+    return isNaN(d.getTime()) ? null : d;
+  }, [route.params?.date]);
+
+  // Sätt initialt datum (fallback = idag)
+  const [date, setDate] = useState<Date>(() => paramDate ?? new Date());
+
+  // Om route param ändras efter mount: uppdatera en gång
+  useEffect(() => {
+    if (paramDate) setDate(paramDate);
+  }, [paramDate]);
+
+  const onChange = (_event: any, selectedDate?: Date) => {
+    if (!selectedDate) return; // iOS kan skicka undefined vid cancel
+    setDate(selectedDate);
   };
 
   const [selectedExercises, setSelectedExercises] = useState<string[]>([]);
