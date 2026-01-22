@@ -1,82 +1,172 @@
-import React, { useMemo, useState } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useMemo, useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Dropdown, { DropItem } from '../components/Dropdown';
-import { useNavigation } from '@react-navigation/native';
-import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
-import { RootTabParamList } from '../navigations/types';
-
-type ProgressNav = BottomTabNavigationProp<RootTabParamList, 'ProgressScreen'>;
-
-const exerciseItems: DropItem[] = [
-  { data: 'Bänkpress' },
-  { data: 'Knäböj' },
-  { data: 'Marklyft' },
-  { data: 'Chins' },
-];
-
-const progressByExercise: Record<string, { date: string; detail: string }[]> = {
-  'Bänkpress': [
-    { date: '2026-01-21', detail: '80 kg • 5x5' },
-    { date: '2026-01-07', detail: '77.5 kg • 5x5' },
-    { date: '2025-12-20', detail: '75 kg • 5x5' },
-  ],
-  'Knäböj': [
-    { date: '2026-01-18', detail: '110 kg • 5x3' },
-    { date: '2026-01-05', detail: '105 kg • 5x3' },
-    { date: '2025-12-22', detail: '100 kg • 5x3' },
-  ],
-  'Marklyft': [
-    { date: '2026-01-15', detail: '140 kg • 3x3' },
-    { date: '2026-01-02', detail: '135 kg • 3x3' },
-    { date: '2025-12-19', detail: '130 kg • 3x3' },
-  ],
-  Chins: [
-    { date: '2026-01-20', detail: 'BW +10 kg • 4x6' },
-    { date: '2026-01-06', detail: 'BW +7.5 kg • 4x6' },
-    { date: '2025-12-23', detail: 'BW +5 kg • 4x6' },
-  ],
+import Dropdown from '../components/Dropdown';
+import { useFocusEffect } from '@react-navigation/native';
+type ExerciseItem = { id: number; name: string };
+type ProgressEntry = {
+  workoutId: number;
+  workoutName: string;
+  workoutCreated: string;
+  setNum: number;
+  reps: number;
+  weightKg?: number | null;
+  notes?: string | null;
 };
 
+const apiBaseUrl = 'http://localhost:5026';
+
 export default function ProgressScreen() {
-  const navigation = useNavigation<ProgressNav>();
   const [selectedExercises, setSelectedExercises] = useState<string[]>([]);
+  const [exercises, setExercises] = useState<ExerciseItem[]>([]);
+  const [progressEntries, setProgressEntries] = useState<ProgressEntry[]>([]);
+  const [isLoadingExercises, setIsLoadingExercises] = useState(false);
+  const [isLoadingProgress, setIsLoadingProgress] = useState(false);
 
   const activeExercise = selectedExercises[0];
-  const progressEntries = useMemo(() => {
-    if (!activeExercise) return [];
-    return progressByExercise[activeExercise] ?? [];
-  }, [activeExercise]);
+  const activeExerciseItem = useMemo(
+    () => exercises.find(exercise => exercise.name === activeExercise),
+    [exercises, activeExercise]
+  );
+
+  const progressSummary = useMemo(() => {
+    if (progressEntries.length === 0) return null;
+    const weights = progressEntries.map(entry => entry.weightKg ?? 0);
+    const maxWeight = Math.max(...weights, 0);
+    const latest = [...progressEntries]
+      .sort((a, b) => new Date(b.workoutCreated).getTime() - new Date(a.workoutCreated).getTime())[0];
+    const latestWeight = latest?.weightKg ?? 0;
+    const percent = maxWeight > 0 ? Math.min((latestWeight / maxWeight) * 100, 100) : 0;
+    return { maxWeight, latestWeight, percent };
+  }, [progressEntries]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function fetchExercises() {
+      setIsLoadingExercises(true);
+      try {
+        const response = await fetch(`${apiBaseUrl}/Exercise/Exercises`);
+        if (!response.ok) return;
+        const data: ExerciseItem[] = await response.json();
+        if (!isMounted) return;
+        setExercises(data);
+      } catch (error) {
+        if (!isMounted) return;
+        setExercises([]);
+      } finally {
+        if (!isMounted) return;
+        setIsLoadingExercises(false);
+      }
+    }
+
+    fetchExercises();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      setSelectedExercises([]);
+      setProgressEntries([]);
+      setIsLoadingProgress(false);
+    }, [])
+  );
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function fetchProgress() {
+      if (!activeExerciseItem) {
+        setProgressEntries([]);
+        return;
+      }
+      setIsLoadingProgress(true);
+      try {
+        const response = await fetch(
+          `${apiBaseUrl}/Workout/Progress?exerciseId=${activeExerciseItem.id}&sortBy=weight`
+        );
+        if (!response.ok) return;
+        const data: ProgressEntry[] = await response.json();
+        if (!isMounted) return;
+        setProgressEntries(data);
+      } catch (error) {
+        if (!isMounted) return;
+        setProgressEntries([]);
+      } finally {
+        if (!isMounted) return;
+        setIsLoadingProgress(false);
+      }
+    }
+
+    fetchProgress();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [activeExerciseItem]);
 
   return (
     <SafeAreaView style={styles.wrapper} edges={['top', 'left', 'right']}>
       <Text style={styles.title}>Progress</Text>
 
-      <View style={styles.section}>
-        <Dropdown
-          label="Övning"
-          placeholder="Välj övning"
-          items={exerciseItems}
-          singleSelect
-          onChange={setSelectedExercises}
-        />
-      </View>
+      <ScrollView contentContainerStyle={styles.content}>
+        <View style={styles.section}>
+          <Dropdown
+            label="Övning"
+            placeholder={isLoadingExercises ? 'Hämtar övningar...' : 'Välj övning'}
+            items={exercises.map(exercise => ({ data: exercise.name }))}
+            singleSelect
+            onChange={setSelectedExercises}
+          />
+        </View>
 
-      <View style={styles.section}>
-        {!activeExercise ? (
-          <Text style={styles.helper}>Välj en övning för att se din utveckling.</Text>
-        ) : (
-          <View>
-            <Text style={styles.sectionTitle}>{activeExercise}</Text>
-            {progressEntries.map(entry => (
-              <View key={`${activeExercise}-${entry.date}`} style={styles.card}>
-                <Text style={styles.cardDate}>{entry.date}</Text>
-                <Text style={styles.cardDetail}>{entry.detail}</Text>
-              </View>
-            ))}
-          </View>
-        )}
-      </View>
+        <View style={styles.section}>
+          {!activeExercise ? (
+            <Text style={styles.helper}>Välj en övning för att se din utveckling.</Text>
+          ) : isLoadingProgress ? (
+            <View style={styles.loading}>
+              <ActivityIndicator color="#0F172A" />
+            </View>
+          ) : (
+            <View>
+              <Text style={styles.sectionTitle}>{activeExercise}</Text>
+              {progressSummary ? (
+                <View style={styles.progressCard}>
+                  <View style={styles.progressRow}>
+                    <Text style={styles.progressLabel}>Senaste</Text>
+                    <Text style={styles.progressValue}>{progressSummary.latestWeight} kg</Text>
+                  </View>
+                  <View style={styles.progressRow}>
+                    <Text style={styles.progressLabel}>Basta</Text>
+                    <Text style={styles.progressValue}>{progressSummary.maxWeight} kg</Text>
+                  </View>
+                  <View style={styles.barTrack}>
+                    <View style={[styles.barFill, { width: `${progressSummary.percent}%` }]} />
+                  </View>
+                </View>
+              ) : null}
+              {progressEntries.length === 0 ? (
+                <Text style={styles.helper}>Inga set registrerade ännu.</Text>
+              ) : (
+                progressEntries.map(entry => (
+                  <View key={`${activeExercise}-${entry.workoutId}-${entry.setNum}`} style={styles.card}>
+                    <Text style={styles.cardDate}>
+                      {new Date(entry.workoutCreated).toISOString().split('T')[0]} • {entry.workoutName}
+                    </Text>
+                    <Text style={styles.cardDetail}>
+                      {entry.reps} reps • {entry.weightKg ?? 0} kg
+                      {entry.notes ? ` • ${entry.notes}` : ''}
+                    </Text>
+                  </View>
+                ))
+              )}
+            </View>
+          )}
+        </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -85,7 +175,6 @@ const styles = StyleSheet.create({
   wrapper: {
     flex: 1,
     backgroundColor: '#F3F4F6',
-    paddingHorizontal: 20,
   },
   title: {
     textAlign: 'center',
@@ -93,6 +182,10 @@ const styles = StyleSheet.create({
     marginTop: 24,
     color: '#0F172A',
     fontFamily: 'Poppins_400Regular',
+  },
+  content: {
+    paddingHorizontal: 20,
+    paddingBottom: 40,
   },
   section: {
     marginTop: 24,
@@ -107,6 +200,46 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#64748B',
     fontFamily: 'Poppins_400Regular',
+  },
+  loading: {
+    marginTop: 10,
+  },
+  progressCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 14,
+    shadowColor: '#0F172A',
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
+  },
+  progressRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+  },
+  progressLabel: {
+    fontSize: 13,
+    color: '#64748B',
+    fontFamily: 'Poppins_400Regular',
+  },
+  progressValue: {
+    fontSize: 14,
+    color: '#0F172A',
+    fontFamily: 'Poppins_400Regular',
+  },
+  barTrack: {
+    height: 10,
+    borderRadius: 999,
+    backgroundColor: '#E2E8F0',
+    marginTop: 8,
+    overflow: 'hidden',
+  },
+  barFill: {
+    height: '100%',
+    backgroundColor: '#14B8A6',
   },
   card: {
     backgroundColor: '#FFFFFF',
