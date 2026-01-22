@@ -9,7 +9,8 @@ type HomeNav = BottomTabNavigationProp<RootTabParamList, 'HomeScreen'>;
 
 export default function HomeScreen(){
     const navigation = useNavigation<HomeNav>();
-    const [todaysWorkout, setTodaysWorkout] = useState<{ name: string; workoutDate: string } | null>(null);
+    const [todaysWorkout, setTodaysWorkout] = useState<{ name: string; workoutDate: string; completed?: boolean } | null>(null);
+    const [nextWorkout, setNextWorkout] = useState<{ name: string; workoutDate: string } | null>(null);
     const apiBaseUrl = 'http://localhost:5026';
     const todayDate = new Date().toISOString().split('T')[0];
 
@@ -28,7 +29,7 @@ export default function HomeScreen(){
             try {
                 const response = await fetch(`${apiBaseUrl}/Workout/Workouts`);
                 if (!response.ok) return;
-                const data: { workout?: { name?: string; workoutDate?: string } }[] = await response.json();
+                const data: { workout?: { name?: string; workoutDate?: string, completed?: boolean } }[] = await response.json();
                 const workout = data
                     .map(item => item.workout)
                     .find(item => {
@@ -37,15 +38,30 @@ export default function HomeScreen(){
                         return dateOnly === todayDate;
                     });
 
+                const upcomingWorkout = data
+                    .map(item => item.workout)
+                    .filter(item => item?.workoutDate)
+                    .map(item => {
+                        const dateOnly = new Date(item!.workoutDate!).toISOString().split('T')[0];
+                        return {
+                            name: item!.name ?? 'Pass',
+                            workoutDate: dateOnly,
+                        };
+                    })
+                    .filter(item => item.workoutDate > todayDate)
+                    .sort((a, b) => (a.workoutDate > b.workoutDate ? 1 : -1))[0] ?? null;
+
                 if (!isMounted) return;
                 setTodaysWorkout(
                     workout?.name && workout.workoutDate
-                        ? { name: workout.name, workoutDate: workout.workoutDate }
+                        ? { name: workout.name, workoutDate: workout.workoutDate, completed: workout.completed }
                         : null
                 );
+                setNextWorkout(upcomingWorkout);
             } catch (error) {
                 if (!isMounted) return;
                 setTodaysWorkout(null);
+                setNextWorkout(null);
             }
         }
 
@@ -58,7 +74,9 @@ export default function HomeScreen(){
     let intoText = () => {
         return (
             <Text style={style.introText}>{todaysWorkout != null ? 
-                `Idag står det ${todaysWorkout.name} på schemat! 💪` 
+                todaysWorkout.completed
+                    ? `Starkt jobbat idag! Nästa inplanerade träningspass är ${nextWorkout?.name ?? 'inte planerat'}${nextWorkout ? ` (${nextWorkout.workoutDate})` : ''}`
+                    : `Idag står det ${todaysWorkout.name} på schemat! 💪`
                 : "Inget pass registrerat idag. Vill du skapa ett direkt?" }</Text>
         );
     };
