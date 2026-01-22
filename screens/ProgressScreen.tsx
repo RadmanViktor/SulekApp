@@ -165,6 +165,7 @@ export default function ProgressScreen() {
             placeholder={isLoadingExercises ? 'Hämtar övningar...' : 'Välj övning'}
             items={exercises.map(exercise => ({ data: exercise.name }))}
             singleSelect
+            value={selectedExercises}
             onChange={setSelectedExercises}
           />
         </View>

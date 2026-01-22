@@ -121,7 +121,7 @@ export default function Dropdown({
             <View style={styles.searchRow}>
               <TextInput
                 style={styles.searchInput}
-                placeholder="Sok ovning"
+                placeholder="Sök övning"
                 value={searchText}
                 onChangeText={setSearchText}
                 placeholderTextColor="#9ca3af"
