@@ -1,8 +1,14 @@
-import { View, Text, StyleSheet } from "react-native";
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-const Tab = createBottomTabNavigator();
+import { View, Text, StyleSheet, Pressable, Image } from "react-native";
+import { useNavigation } from '@react-navigation/native';
+import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import { RootTabParamList } from '../navigations/types';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+type HomeNav = BottomTabNavigationProp<RootTabParamList, 'HomeScreen'>;
 
 export default function HomeScreen(){
+    const navigation = useNavigation<HomeNav>();
+    const insets = useSafeAreaInsets();
 
     // TODO!
     // Hämta data om dagens pass här
@@ -25,6 +31,15 @@ export default function HomeScreen(){
     };
     return(
         <View style={style.wrapper}>
+            <Pressable
+                style={[style.profileButton, { top: insets.top + 12 }]}
+                onPress={() => navigation.navigate('ProfileScreen')}
+            >
+                <Image
+                    source={{ uri: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=200&q=80' }}
+                    style={style.profileImage}
+                />
+            </Pressable>
             <View>
                 {intoText()}
             </View>
@@ -49,6 +64,7 @@ const style = StyleSheet.create({
     justifyContent: 'flex-start',
     alignItems: 'center',
     paddingTop: '45%', // ← justera 25–35% efter känsla
+    backgroundColor: '#F3F4F6',
   },
   introText: {
     padding: 20,
@@ -56,5 +72,20 @@ const style = StyleSheet.create({
     color: '#374151',
     fontSize: 24,
     fontFamily: 'Poppins_400Regular',
-  }
+  },
+  profileButton: {
+    position: 'absolute',
+    right: 18,
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    borderWidth: 2,
+    borderColor: '#E2E8F0',
+    backgroundColor: '#E5E7EB',
+    overflow: 'hidden',
+  },
+  profileImage: {
+    width: '100%',
+    height: '100%',
+  },
 });

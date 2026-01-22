@@ -9,6 +9,7 @@ import { useFonts, Poppins_400Regular } from '@expo-google-fonts/poppins';
 import HomeScreen from './screens/HomeScreen';
 import CreateWorkoutScreen from './screens/CreateWorkoutScreen';
 import CalenderScreen from './screens/CalenderScreen';
+import ProfileScreen from './screens/ProfileScreen';
 import { RootTabParamList } from './navigations/types';
 
 const Tab = createBottomTabNavigator<RootTabParamList>();
@@ -67,6 +68,14 @@ export default function App() {
           <Tab.Screen name="HomeScreen" component={HomeScreen} options={{title: 'Hem'}}/>
           <Tab.Screen name="CreateWorkoutScreen" component={CreateWorkoutScreen} options={{ title: 'Nytt' }} />
           <Tab.Screen name="CalenderScreen" component={CalenderScreen} options={{ title: 'Kalender' }} />
+          <Tab.Screen
+            name="ProfileScreen"
+            component={ProfileScreen}
+            options={{
+              title: 'Profil',
+              tabBarButton: () => null,
+            }}
+          />
         </Tab.Navigator>
       </NavigationContainer>
     </SafeAreaProvider>

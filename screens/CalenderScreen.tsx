@@ -32,6 +32,11 @@ export default function CalendarScreen() {
         showScrollIndicator={false}
         onDayPress={(day) => navigation.navigate("CreateWorkoutScreen", {date: day.dateString})} 
         theme={{
+          backgroundColor: '#F3F4F6',
+          calendarBackground: '#F3F4F6',
+          textSectionTitleColor: '#64748B',
+          dayTextColor: '#334155',
+          monthTextColor: '#334155',
           todayTextColor: '#14B8A6',
           arrowColor: '#14B8A6',
           dotColor: '#14B8A6',
@@ -46,7 +51,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignContent: 'center',
     justifyContent: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: '#F3F4F6',
   },
   calendar: {
   },
