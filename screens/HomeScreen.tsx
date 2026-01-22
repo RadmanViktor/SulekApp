@@ -19,10 +19,6 @@ export default function HomeScreen(){
     // Hämta data om dagens pass här
     // Kunna starta pass direkt från hemskärmen
 
-    const goals = {
-        weeklyWorkoutGoal: 3,
-    };
-
     useFocusEffect(
         useCallback(() => {
             let isActive = true;
@@ -104,27 +100,15 @@ export default function HomeScreen(){
                     <Text style={style.quickButtonSecondaryText}>Skapa pass</Text>
                 </Pressable>
             )}
-            <View style={style.container}>
-                <Text style={style.regularText}>🔥 2 veckor i rad med minst {goals.weeklyWorkoutGoal} pass</Text>
-            </View>
         </View>
     );
 }
 
 const style = StyleSheet.create({
-  container: {
-    paddingTop: '35%',
-  },
-  regularText: {
-    fontSize: 16,
-    color: '#374151',
-    fontFamily: 'Poppins_400Regular',
-  },
   wrapper: {
     flex: 1,
-    justifyContent: 'flex-start',
+    justifyContent: 'center',
     alignItems: 'center',
-    paddingTop: '45%', // ← justera 25–35% efter känsla
     backgroundColor: '#F3F4F6',
   },
   introText: {
