@@ -99,19 +99,21 @@ export default function Dropdown({
       </Pressable>
 
       {/* Gradient-chips */}
-      <View style={styles.chips}>
-        {selected.map(item => (
-          <View
-            key={item}
-            style={styles.chip}
-          >
-            <Text style={styles.chipText}>{item}</Text>
-            <Pressable onPress={() => removeChip(item)}>
-              <Text style={styles.chipRemove}>✕</Text>
-            </Pressable>
-          </View>
-        ))}
-      </View>
+      {!singleSelect ? (
+        <View style={styles.chips}>
+          {selected.map(item => (
+            <View
+              key={item}
+              style={styles.chip}
+            >
+              <Text style={styles.chipText}>{item}</Text>
+              <Pressable onPress={() => removeChip(item)}>
+                <Text style={styles.chipRemove}>✕</Text>
+              </Pressable>
+            </View>
+          ))}
+        </View>
+      ) : null}
 
       <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
         <Pressable style={styles.backdrop} onPress={() => setOpen(false)}>

@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Dropdown from '../components/Dropdown';
@@ -22,6 +22,8 @@ export default function ProgressScreen() {
   const [progressEntries, setProgressEntries] = useState<ProgressEntry[]>([]);
   const [isLoadingExercises, setIsLoadingExercises] = useState(false);
   const [isLoadingProgress, setIsLoadingProgress] = useState(false);
+  const [monthlyWorkoutCount, setMonthlyWorkoutCount] = useState(0);
+  const [isLoadingMonthly, setIsLoadingMonthly] = useState(false);
 
   const activeExercise = selectedExercises[0];
   const activeExerciseItem = useMemo(
@@ -39,6 +41,30 @@ export default function ProgressScreen() {
     const percent = maxWeight > 0 ? Math.min((latestWeight / maxWeight) * 100, 100) : 0;
     return { maxWeight, latestWeight, percent };
   }, [progressEntries]);
+
+  const fetchMonthlyCount = useCallback(async () => {
+    setIsLoadingMonthly(true);
+    try {
+      const response = await fetch(`${apiBaseUrl}/Workout/Workouts`);
+      if (!response.ok) return;
+      const data: { workout?: { workoutDate?: string } }[] = await response.json();
+      const now = new Date();
+      const month = now.getMonth();
+      const year = now.getFullYear();
+      const count = data
+        .map(item => item.workout?.workoutDate)
+        .filter((workoutDate): workoutDate is string => Boolean(workoutDate))
+        .filter(workoutDate => {
+          const date = new Date(workoutDate);
+          return date.getMonth() === month && date.getFullYear() === year;
+        }).length;
+      setMonthlyWorkoutCount(count);
+    } catch (error) {
+      setMonthlyWorkoutCount(0);
+    } finally {
+      setIsLoadingMonthly(false);
+    }
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -72,7 +98,8 @@ export default function ProgressScreen() {
       setSelectedExercises([]);
       setProgressEntries([]);
       setIsLoadingProgress(false);
-    }, [])
+      fetchMonthlyCount();
+    }, [fetchMonthlyCount])
   );
 
   useEffect(() => {
@@ -113,6 +140,25 @@ export default function ProgressScreen() {
       <Text style={styles.title}>Progress</Text>
 
       <ScrollView contentContainerStyle={styles.content}>
+        <View style={styles.section}>
+          <View style={styles.monthCard}>
+            {isLoadingMonthly ? (
+              <ActivityIndicator color="#0F172A" />
+            ) : (
+              <>
+                <Text style={styles.monthLabel}>Denna månad</Text>
+                <Text
+                  style={[
+                    styles.monthValue,
+                    monthlyWorkoutCount >= 10 && styles.monthValueGoal,
+                  ]}
+                >
+                  {monthlyWorkoutCount} pass
+                </Text>
+              </>
+            )}
+          </View>
+        </View>
         <View style={styles.section}>
           <Dropdown
             label="Övning"
@@ -195,6 +241,30 @@ const styles = StyleSheet.create({
     color: '#334155',
     fontFamily: 'Poppins_400Regular',
     marginBottom: 12,
+  },
+  monthCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    shadowColor: '#0F172A',
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 2,
+  },
+  monthLabel: {
+    fontSize: 13,
+    color: '#64748B',
+    fontFamily: 'Poppins_400Regular',
+  },
+  monthValue: {
+    marginTop: 8,
+    fontSize: 24,
+    color: '#0F172A',
+    fontFamily: 'Poppins_400Regular',
+  },
+  monthValueGoal: {
+    color: '#14B8A6',
   },
   helper: {
     fontSize: 14,
