@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TextInput, Pressable, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -49,6 +49,7 @@ export default function WorkoutDetailScreen({ route, navigation }: Props) {
   const [isLoading, setIsLoading] = useState(false);
   const [setDrafts, setSetDrafts] = useState<Record<string, SetDraft>>({});
   const [completingWorkouts, setCompletingWorkouts] = useState<Record<number, boolean>>({});
+  const repsInputRefs = useRef<Record<string, TextInput | null>>({});
   const date = route.params.date;
 
   const headerTitle = useMemo(() => {
@@ -184,6 +185,7 @@ export default function WorkoutDetailScreen({ route, navigation }: Props) {
         notes: '',
         isSaving: false,
       });
+      repsInputRefs.current[key]?.focus();
       await loadWorkouts();
     } catch (error) {
       Alert.alert('Kunde inte spara set', 'Kontrollera att API:t är igång.');
@@ -280,6 +282,9 @@ export default function WorkoutDetailScreen({ route, navigation }: Props) {
                         keyboardType="number-pad"
                         value={draft?.reps ?? ''}
                         onChangeText={value => handleDraftChange(key, { reps: value })}
+                        ref={input => {
+                          repsInputRefs.current[key] = input;
+                        }}
                         placeholderTextColor="#9ca3af"
                       />
                       <TextInput
