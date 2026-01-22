@@ -28,6 +28,8 @@ export default function CalendarScreen() {
           .map(item => item?.workout?.workoutDate)
           .filter((workoutDate): workoutDate is string => Boolean(workoutDate))
           .map(workoutDate => new Date(workoutDate).toISOString().split('T')[0]);
+
+        console.log('Fetched workout dates:', dates);
         if (!isMounted) return;
         setWorkoutDates(Array.from(new Set(dates)));
       } catch (error) {
@@ -61,6 +63,7 @@ export default function CalendarScreen() {
         futureScrollRange={12}
         showScrollIndicator={false}
         onDayPress={(day) => {
+          console.log('Selected day', day);
           if (workoutDates.includes(day.dateString)) {
             navigation.navigate('WorkoutDetailScreen', { date: day.dateString });
             return;

@@ -101,14 +101,33 @@ export default function CreateWorkoutScreen({ route, navigation }: Props) {
       .filter(Boolean)
       .map(exerciceId => ({ exerciceId, workoutId: 0 }));
 
-    const payload = {
-      name: name.trim(),
-      workoutDate: date.toISOString(),
-      completed: false,
-      workoutExerciseDtos,
-    };
-
     try {
+      const selectedDate = date.toISOString().split('T')[0];
+      const existingResponse = await fetch(`${apiBaseUrl}/Workout/Workouts`);
+      if (existingResponse.ok) {
+        const existingData: { workout?: { workoutDate?: string } }[] = await existingResponse.json();
+        const existingForDate = existingData
+          .map(item => item.workout)
+          .some(workout => {
+            if (!workout?.workoutDate) return false;
+            const workoutDate = new Date(workout.workoutDate).toISOString().split('T')[0];
+            return workoutDate === selectedDate;
+          });
+
+        if (existingForDate) {
+          Alert.alert('Pass finns redan', 'Det finns redan ett pass registrerat för det här datumet.');
+          setIsSaving(false);
+          return;
+        }
+      }
+
+      const payload = {
+        name: name.trim(),
+        workoutDate: date.toISOString(),
+        completed: false,
+        workoutExerciseDtos,
+      };
+
       const response = await fetch(`${apiBaseUrl}/Workout/CreateWorkout`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
