@@ -11,6 +11,7 @@ import CreateWorkoutScreen from './screens/CreateWorkoutScreen';
 import CalenderScreen from './screens/CalenderScreen';
 import ProfileScreen from './screens/ProfileScreen';
 import ProgressScreen from './screens/ProgressScreen';
+import WorkoutDetailScreen from './screens/WorkoutDetailScreen';
 import { RootTabParamList } from './navigations/types';
 
 const Tab = createBottomTabNavigator<RootTabParamList>();
@@ -28,6 +29,7 @@ export default function App() {
         <Tab.Navigator
           screenOptions={({ route }) => ({
             tabBarActiveTintColor: '#14B8A6',
+            tabBarShowLabel: false,
 
             // TABBAR-STYLE
             tabBarStyle: {
@@ -41,6 +43,7 @@ export default function App() {
             // ITEM-STYLE (centrering)
             tabBarItemStyle: {
               paddingVertical: 6,
+              flex: 1,
             },
 
             // ICON/LABEL FINJUSTERING
@@ -55,7 +58,7 @@ export default function App() {
               let iconName: keyof typeof Ionicons.glyphMap = 'home-outline';
 
               if (route.name === 'HomeScreen') {
-                iconName = focused ? 'home' : 'home-outline';
+                iconName = focused ? 'barbell' : 'barbell-outline';
               } else if (route.name === 'CreateWorkoutScreen') {
                 iconName = focused ? 'add-circle' : 'add-circle-outline';
               } else if (route.name === 'CalenderScreen') {
@@ -64,7 +67,7 @@ export default function App() {
                 iconName = focused ? 'stats-chart' : 'stats-chart-outline';
               }
 
-              return <Ionicons name={iconName} size={size} color={color} />;
+              return <Ionicons name={iconName} size={size + 4} color={color} />;
             },
           })}
         >
@@ -85,6 +88,15 @@ export default function App() {
             component={ProgressScreen}
             options={{
               title: 'Progress',
+            }}
+          />
+          <Tab.Screen
+            name="WorkoutDetailScreen"
+            component={WorkoutDetailScreen}
+            options={{
+              title: 'Passdetaljer',
+              tabBarButton: () => null,
+              tabBarItemStyle: { display: 'none' },
             }}
           />
         </Tab.Navigator>

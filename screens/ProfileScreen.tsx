@@ -1,18 +1,10 @@
 import React from 'react';
 import { View, Text, StyleSheet, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import ProfileButton from '../components/ProfileButton';
-import { useNavigation } from '@react-navigation/native';
-import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
-import { RootTabParamList } from '../navigations/types';
-
-type ProfileNav = BottomTabNavigationProp<RootTabParamList, 'ProfileScreen'>;
 
 export default function ProfileScreen() {
-  const navigation = useNavigation<ProfileNav>();
   return (
     <SafeAreaView style={styles.wrapper} edges={['top', 'left', 'right']}>
-      <ProfileButton onPress={() => navigation.navigate('ProfileScreen')} />
       <View style={styles.header}>
         <Image
           source={{ uri: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=320&q=80' }}

@@ -1,37 +1,58 @@
-import React, { useMemo } from 'react';
-import { StyleSheet, Pressable } from 'react-native';
+import React, { useMemo, useEffect, useState } from 'react';
+import { StyleSheet } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CalendarList } from 'react-native-calendars';
 import '../config/calendarLocale'; 
 import { useNavigation } from '@react-navigation/native';
 import { RootTabParamList } from '../navigations/types';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
-import { Ionicons } from '@expo/vector-icons';
-import ProfileButton from '../components/ProfileButton';
 
 type CalenderNav = BottomTabNavigationProp<RootTabParamList, "CalenderScreen">;
 
 export default function CalendarScreen() {
   const navigation = useNavigation<CalenderNav>();
   const insets = useSafeAreaInsets();
-  const workoutDates = ['2026-01-21', '2026-01-27'];
+  const [workoutDates, setWorkoutDates] = useState<string[]>([]);
+  const apiBaseUrl = 'http://localhost:5026';
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function fetchWorkouts() {
+      try {
+        const response = await fetch(`${apiBaseUrl}/Workout/Workouts`);
+        if (!response.ok) return;
+        const data: { workout?: { workoutDate?: string } }[] = await response.json();
+
+        const dates = data
+          .map(item => item?.workout?.workoutDate)
+          .filter((workoutDate): workoutDate is string => Boolean(workoutDate))
+          .map(workoutDate => new Date(workoutDate).toISOString().split('T')[0]);
+          console.log('Dates!' + dates);
+        if (!isMounted) return;
+        setWorkoutDates(Array.from(new Set(dates)));
+      } catch (error) {
+        if (!isMounted) return;
+        setWorkoutDates([]);
+      }
+    }
+
+    fetchWorkouts();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [apiBaseUrl]);
 
   const markedDates = useMemo(() => {
     return workoutDates.reduce<Record<string, any>>((acc, date) => {
       acc[date] = { marked: true, dotColor: '#14B8A6' };
       return acc;
     }, {});
-  }, []);
+  }, [workoutDates]);
 
   return (
     <SafeAreaView style={styles.wrapper} edges={['top', 'left', 'right']}>
-      <Pressable
-        style={[styles.progressButton, { top: insets.top + 12 }]}
-        onPress={() => navigation.navigate('ProgressScreen')}
-      >
-        <Ionicons name="stats-chart" size={22} color="#0F172A" />
-      </Pressable>
-      <ProfileButton onPress={() => navigation.navigate('ProfileScreen')} />
       <CalendarList
         firstDay={1}
         horizontal
@@ -40,7 +61,13 @@ export default function CalendarScreen() {
         pastScrollRange={12}
         futureScrollRange={12}
         showScrollIndicator={false}
-        onDayPress={(day) => navigation.navigate("CreateWorkoutScreen", {date: day.dateString})} 
+        onDayPress={(day) => {
+          if (workoutDates.includes(day.dateString)) {
+            navigation.navigate('WorkoutDetailScreen', { date: day.dateString });
+            return;
+          }
+          navigation.navigate('CreateWorkoutScreen', { date: day.dateString });
+        }}
         theme={{
           backgroundColor: '#F3F4F6',
           calendarBackground: '#F3F4F6',
@@ -62,20 +89,6 @@ const styles = StyleSheet.create({
     alignContent: 'center',
     justifyContent: 'center',
     backgroundColor: '#F3F4F6',
-  },
-  progressButton: {
-    position: 'absolute',
-    right: 74,
-    zIndex: 10,
-    elevation: 10,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    backgroundColor: '#FFFFFF',
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   calendar: {
   },

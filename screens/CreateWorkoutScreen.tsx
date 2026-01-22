@@ -8,7 +8,6 @@ import RNDateTimePicker from '@react-native-community/datetimepicker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { RootTabParamList } from '../navigations/types';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
-import ProfileButton from '../components/ProfileButton';
 
 type Props = BottomTabScreenProps<RootTabParamList, "CreateWorkoutScreen">;
 
@@ -53,11 +52,11 @@ export default function CreateWorkoutScreen({ route, navigation }: Props) {
 
     const payload = {
       name: name.trim(),
+      workoutDate: date.toISOString(),
       workoutExerciseDtos,
     };
 
     try {
-      console.log(payload)
       const response = await fetch(`${apiBaseUrl}/Workout/CreateWorkout`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -82,7 +81,6 @@ export default function CreateWorkoutScreen({ route, navigation }: Props) {
 
   return (
       <SafeAreaView style={{ flex: 1 }} edges={['right', 'left', 'top']}>
-      <ProfileButton onPress={() => navigation.navigate('ProfileScreen')} />
       <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40 }}>
         <Text style={styles.header}>Skapa nytt träningspass</Text>
 
@@ -122,7 +120,7 @@ export default function CreateWorkoutScreen({ route, navigation }: Props) {
           style={{ marginTop: 32 }}
         >
           <LinearGradient
-            colors={['#0ea5e9', '#3b82f6']} // blå gradient
+            colors={['#14B8A6', '#0D9488']} // teal gradient
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={[

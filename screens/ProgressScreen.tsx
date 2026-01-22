@@ -2,7 +2,6 @@ import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Dropdown, { DropItem } from '../components/Dropdown';
-import ProfileButton from '../components/ProfileButton';
 import { useNavigation } from '@react-navigation/native';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { RootTabParamList } from '../navigations/types';
@@ -51,7 +50,6 @@ export default function ProgressScreen() {
 
   return (
     <SafeAreaView style={styles.wrapper} edges={['top', 'left', 'right']}>
-      <ProfileButton onPress={() => navigation.navigate('ProfileScreen')} />
       <Text style={styles.title}>Progress</Text>
 
       <View style={styles.section}>
