@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { StyleSheet, View, Text, TextInput, TouchableOpacity, ScrollView, Platform, StatusBar, Pressable, Alert } from 'react-native';
+import { StyleSheet, View, Text, TextInput, TouchableOpacity, ScrollView, Platform, StatusBar, Pressable, Alert, ActivityIndicator } from 'react-native';
 import { DropItem } from '../components/Dropdown';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -15,6 +15,7 @@ type Props = BottomTabScreenProps<RootTabParamList, "CreateWorkoutScreen">;
 export default function CreateWorkoutScreen({ route, navigation }: Props) {
   const [name, setName] = useState('');
   const [date, setDate] = useState<Date>(() => paramDate ?? new Date());
+  const [isSaving, setIsSaving] = useState(false);
 
   const apiBaseUrl = 'http://localhost:5026';
   const exerciseIdMap: Record<string, number> = {
@@ -43,6 +44,8 @@ export default function CreateWorkoutScreen({ route, navigation }: Props) {
   const [selectedExercises, setSelectedExercises] = useState<string[]>([]);
 
   async function handleSaveWorkout() {
+    if (isSaving) return;
+    setIsSaving(true);
     const workoutExerciseDtos = selectedExercises
       .map(exercise => exerciseIdMap[exercise])
       .filter(Boolean)
@@ -54,6 +57,7 @@ export default function CreateWorkoutScreen({ route, navigation }: Props) {
     };
 
     try {
+      console.log(payload)
       const response = await fetch(`${apiBaseUrl}/Workout/CreateWorkout`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -71,6 +75,8 @@ export default function CreateWorkoutScreen({ route, navigation }: Props) {
       setSelectedExercises([]);
     } catch (error) {
       Alert.alert('Kunde inte skapa pass', 'Kontrollera att API:t är igång.');
+    } finally {
+      setIsSaving(false);
     }
   }
 
@@ -110,17 +116,25 @@ export default function CreateWorkoutScreen({ route, navigation }: Props) {
           />
         </View>
 
-        <Pressable onPress={handleSaveWorkout} disabled={!name.trim() || selectedExercises.length === 0} style={{ marginTop: 32 }}>
+        <Pressable
+          onPress={handleSaveWorkout}
+          disabled={!name.trim() || selectedExercises.length === 0 || isSaving}
+          style={{ marginTop: 32 }}
+        >
           <LinearGradient
             colors={['#0ea5e9', '#3b82f6']} // blå gradient
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={[
               styles.button,
-              (selectedExercises.length === 0 || name == '') && styles.buttonDisabled,
+              (selectedExercises.length === 0 || name == '' || isSaving) && styles.buttonDisabled,
             ]}
           >
-            <Text style={styles.buttonText}>Skapa pass</Text>
+            {isSaving ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.buttonText}>Skapa pass</Text>
+            )}
           </LinearGradient>
         </Pressable>
       </ScrollView>
