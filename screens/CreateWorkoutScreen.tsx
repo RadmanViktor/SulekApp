@@ -18,6 +18,28 @@ export default function CreateWorkoutScreen({ route, navigation }: Props) {
   const [isSaving, setIsSaving] = useState(false);
   const [exercises, setExercises] = useState<{ id: number; name: string }[]>([]);
   const [isLoadingExercises, setIsLoadingExercises] = useState(false);
+  const templates = [
+    {
+      title: 'Push-pass',
+      focus: 'Bröst • Axlar • Triceps',
+      exercises: ['Bänkpress', 'Hantelpress', 'Axelpress', 'Triceps pushdown'],
+    },
+    {
+      title: 'Pull-pass',
+      focus: 'Rygg • Biceps',
+      exercises: ['Marklyft', 'Latsdrag', 'Sittande rodd', 'Bicepscurl'],
+    },
+    {
+      title: 'Ben-pass',
+      focus: 'Framsida • Baksida • Sätesmuskler',
+      exercises: ['Knäböj', 'Rumänska marklyft', 'Benpress', 'Vadpress'],
+    },
+    {
+      title: 'Helkropp',
+      focus: 'Basövningar',
+      exercises: ['Knäböj', 'Bänkpress', 'Skivstångsrodd', 'Militärpress'],
+    },
+  ];
 
   const apiBaseUrl = 'http://localhost:5026';
 
@@ -90,6 +112,19 @@ export default function CreateWorkoutScreen({ route, navigation }: Props) {
 
   const [selectedExercises, setSelectedExercises] = useState<string[]>([]);
 
+  const handleApplyTemplate = (template: typeof templates[number]) => {
+    const available = new Set(exercises.map(item => item.name));
+    const matched = template.exercises.filter(name => available.has(name));
+    const missing = template.exercises.filter(name => !available.has(name));
+
+    setName(template.title);
+    setSelectedExercises(matched);
+
+    if (missing.length > 0) {
+      Alert.alert('Saknar övningar', `Lägg till: ${missing.join(', ')}`);
+    }
+  };
+
   async function handleSaveWorkout() {
     if (isSaving) return;
     setIsSaving(true);
@@ -156,6 +191,22 @@ export default function CreateWorkoutScreen({ route, navigation }: Props) {
       <SafeAreaView style={{ flex: 1 }} edges={['right', 'left', 'top']}>
       <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40 }}>
         <Text style={styles.header}>Skapa nytt träningspass</Text>
+
+        <View style={styles.inputContainer}>
+          <Text style={styles.sectionTitle}>Färdiga pass</Text>
+          <View style={styles.templateGrid}>
+            {templates.map(template => (
+              <View key={template.title} style={styles.templateCard}>
+                <Text style={styles.templateTitle}>{template.title}</Text>
+                <Text style={styles.templateFocus}>{template.focus}</Text>
+                <Text style={styles.templateList}>{template.exercises.join(' • ')}</Text>
+                <Pressable style={styles.templateButton} onPress={() => handleApplyTemplate(template)}>
+                  <Text style={styles.templateButtonText}>Använd</Text>
+                </Pressable>
+              </View>
+            ))}
+          </View>
+        </View>
 
         <View style={styles.inputContainer}>
           <Text style={styles.label}>Passnamn</Text>
@@ -231,6 +282,52 @@ const styles = StyleSheet.create({
   },
   inputContainer: {
     marginTop: 24,
+  },
+  sectionTitle: {
+    fontFamily: 'Poppins_400Regular',
+    fontSize: 16,
+    color: '#334155',
+    marginBottom: 10,
+  },
+  templateGrid: {
+    gap: 12,
+  },
+  templateCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  templateTitle: {
+    fontSize: 16,
+    color: '#0F172A',
+    fontFamily: 'Poppins_400Regular',
+  },
+  templateFocus: {
+    marginTop: 4,
+    fontSize: 13,
+    color: '#64748B',
+    fontFamily: 'Poppins_400Regular',
+  },
+  templateList: {
+    marginTop: 8,
+    fontSize: 13,
+    color: '#475569',
+    fontFamily: 'Poppins_400Regular',
+  },
+  templateButton: {
+    marginTop: 12,
+    alignSelf: 'flex-start',
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    borderRadius: 999,
+    backgroundColor: '#14B8A6',
+  },
+  templateButtonText: {
+    fontSize: 13,
+    color: '#FFFFFF',
+    fontFamily: 'Poppins_400Regular',
   },
   label: {
     fontFamily: 'Poppins_400Regular',

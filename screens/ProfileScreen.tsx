@@ -1,8 +1,17 @@
-import React from 'react';
-import { View, Text, StyleSheet, Image } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { View, Text, StyleSheet, Image, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function ProfileScreen() {
+  const [weeklyGoal, setWeeklyGoal] = useState('3');
+  const [mainFocus, setMainFocus] = useState('Hypertrofi');
+
+  const subtitle = useMemo(() => {
+    const goalText = weeklyGoal.trim() ? `${weeklyGoal.trim()} pass/vecka` : 'Inget mål satt';
+    const focusText = mainFocus.trim() || 'Fokus saknas';
+    return `${focusText} • ${goalText}`;
+  }, [mainFocus, weeklyGoal]);
+
   return (
     <SafeAreaView style={styles.wrapper} edges={['top', 'left', 'right']}>
       <View style={styles.header}>
@@ -11,18 +20,31 @@ export default function ProfileScreen() {
           style={styles.avatar}
         />
         <Text style={styles.name}>Alex Andersson</Text>
-        <Text style={styles.subtitle}>Styrka • 3 pass/vecka</Text>
+        <Text style={styles.subtitle}>{subtitle}</Text>
       </View>
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Mina mål</Text>
         <View style={styles.card}>
           <Text style={styles.cardLabel}>Veckomål</Text>
-          <Text style={styles.cardValue}>3 pass</Text>
+          <TextInput
+            style={styles.input}
+            value={weeklyGoal}
+            onChangeText={setWeeklyGoal}
+            keyboardType="number-pad"
+            placeholder="Antal pass"
+            placeholderTextColor="#94A3B8"
+          />
         </View>
         <View style={styles.card}>
           <Text style={styles.cardLabel}>Primärt fokus</Text>
-          <Text style={styles.cardValue}>Hypertrofi</Text>
+          <TextInput
+            style={styles.input}
+            value={mainFocus}
+            onChangeText={setMainFocus}
+            placeholder="T.ex. styrka"
+            placeholderTextColor="#94A3B8"
+          />
         </View>
       </View>
 
@@ -100,5 +122,17 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: '#0F172A',
     fontFamily: 'Poppins_400Regular',
+  },
+  input: {
+    marginTop: 8,
+    fontSize: 18,
+    color: '#0F172A',
+    fontFamily: 'Poppins_400Regular',
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    backgroundColor: '#F8FAFC',
   },
 });
