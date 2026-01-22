@@ -1,10 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TextInput, Pressable, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TextInput, Pressable, Alert, ActivityIndicator, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { RootTabParamList } from '../navigations/types';
 import { toLocalDateString } from '../utils/date';
+import ConfettiCannon from 'react-native-confetti-cannon';
 
 type Props = BottomTabScreenProps<RootTabParamList, 'WorkoutDetailScreen'>;
 
@@ -50,8 +51,11 @@ export default function WorkoutDetailScreen({ route, navigation }: Props) {
   const [isLoading, setIsLoading] = useState(false);
   const [setDrafts, setSetDrafts] = useState<Record<string, SetDraft>>({});
   const [completingWorkouts, setCompletingWorkouts] = useState<Record<number, boolean>>({});
+  const [confettiKey, setConfettiKey] = useState(0);
+  const [showConfetti, setShowConfetti] = useState(false);
   const repsInputRefs = useRef<Record<string, TextInput | null>>({});
   const date = route.params.date;
+  const screenWidth = Dimensions.get('window').width;
 
   const headerTitle = useMemo(() => {
     if (workouts.length === 1) return workouts[0]?.name ?? 'Pass';
@@ -212,7 +216,14 @@ export default function WorkoutDetailScreen({ route, navigation }: Props) {
       }
 
       await loadWorkouts();
-      Alert.alert('Klart', 'Passet är markerat som klart.');
+      setConfettiKey(prev => prev + 1);
+      setShowConfetti(true);
+      Alert.alert('Klart', 'Passet är markerat som klart.', [
+        {
+          text: 'OK',
+          onPress: () => navigation.navigate('HomeScreen'),
+        },
+      ]);
     } catch (error) {
       Alert.alert('Kunde inte markera pass', 'Kontrollera att API:t är igång.');
     } finally {
@@ -222,6 +233,17 @@ export default function WorkoutDetailScreen({ route, navigation }: Props) {
 
   return (
     <SafeAreaView style={styles.wrapper} edges={['top', 'left', 'right']}>
+      {showConfetti ? (
+        <View style={styles.confettiContainer} pointerEvents="none">
+          <ConfettiCannon
+            key={confettiKey}
+            count={50}
+            origin={{ x: screenWidth / 2, y: 12 }}
+            fadeOut
+            onAnimationEnd={() => setShowConfetti(false)}
+          />
+        </View>
+      ) : null}
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.header}>
           <Text style={styles.title}>{headerTitle}</Text>
@@ -353,6 +375,10 @@ const styles = StyleSheet.create({
   wrapper: {
     flex: 1,
     backgroundColor: '#F3F4F6',
+  },
+  confettiContainer: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 10,
   },
   content: {
     paddingHorizontal: 20,
