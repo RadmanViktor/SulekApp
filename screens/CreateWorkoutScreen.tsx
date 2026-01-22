@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { StyleSheet, View, Text, TextInput, TouchableOpacity, ScrollView, Platform, StatusBar, Pressable } from 'react-native';
+import { StyleSheet, View, Text, TextInput, TouchableOpacity, ScrollView, Platform, StatusBar, Pressable, Alert } from 'react-native';
 import { DropItem } from '../components/Dropdown';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -15,6 +15,13 @@ type Props = BottomTabScreenProps<RootTabParamList, "CreateWorkoutScreen">;
 export default function CreateWorkoutScreen({ route, navigation }: Props) {
   const [name, setName] = useState('');
   const [date, setDate] = useState<Date>(() => paramDate ?? new Date());
+
+  const apiBaseUrl = 'http://localhost:5026';
+  const exerciseIdMap: Record<string, number> = {
+    'Bänkpress': 1,
+    'Knäböj': 2,
+    'Marklyft': 3,
+  };
 
   const paramDate = useMemo(() => {
     const raw = route.params?.date;
@@ -35,9 +42,36 @@ export default function CreateWorkoutScreen({ route, navigation }: Props) {
 
   const [selectedExercises, setSelectedExercises] = useState<string[]>([]);
 
-  function handleSaveWorkout() {
-    const payload = { name, exercises: selectedExercises.map(x => x), date: date.toISOString() };
-    console.log('Saving workout:', payload);
+  async function handleSaveWorkout() {
+    const workoutExerciseDtos = selectedExercises
+      .map(exercise => exerciseIdMap[exercise])
+      .filter(Boolean)
+      .map(exerciceId => ({ exerciceId, workoutId: 0 }));
+
+    const payload = {
+      name: name.trim(),
+      workoutExerciseDtos,
+    };
+
+    try {
+      const response = await fetch(`${apiBaseUrl}/Workout/CreateWorkout`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const message = await response.text();
+        Alert.alert('Kunde inte skapa pass', message || 'Något gick fel.');
+        return;
+      }
+
+      Alert.alert('Pass skapat', 'Ditt träningspass är sparat.');
+      setName('');
+      setSelectedExercises([]);
+    } catch (error) {
+      Alert.alert('Kunde inte skapa pass', 'Kontrollera att API:t är igång.');
+    }
   }
 
   return (
@@ -62,6 +96,7 @@ export default function CreateWorkoutScreen({ route, navigation }: Props) {
             label="Övningar"
             placeholder="Välj övningar"
             items={[{data: "Bänkpress"}, {data: "Knäböj"}, {data: "Marklyft"}]}
+            value={selectedExercises}
             onChange={setSelectedExercises}        // få uppdateringar
           />
         </View>

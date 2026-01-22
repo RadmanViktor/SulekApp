@@ -21,10 +21,16 @@ export default function Dropdown({
   items,
   label,
   singleSelect = false,
+  value,
+  defaultValue,
   onChange,
 }: Props) {
   const [open, setOpen] = useState(false);
-  const [selected, setSelected] = useState<string[]>([]);
+  const [selected, setSelected] = useState<string[]>(defaultValue ?? []);
+
+  useEffect(() => {
+    if (value) setSelected(value);
+  }, [value]);
 
   const displayText = useMemo(() => {
     if (selected.length === 0) return placeholder;
