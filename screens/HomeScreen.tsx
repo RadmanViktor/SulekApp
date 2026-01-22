@@ -1,9 +1,10 @@
 import { View, Text, StyleSheet, Pressable } from "react-native";
-import React, { useEffect, useState } from 'react';
-import { useNavigation } from '@react-navigation/native';
+import React, { useCallback, useState } from 'react';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { RootTabParamList } from '../navigations/types';
 import ProfileButton from '../components/ProfileButton';
+import { toLocalDateString } from '../utils/date';
 
 type HomeNav = BottomTabNavigationProp<RootTabParamList, 'HomeScreen'>;
 
@@ -12,7 +13,7 @@ export default function HomeScreen(){
     const [todaysWorkout, setTodaysWorkout] = useState<{ name: string; workoutDate: string; completed?: boolean } | null>(null);
     const [nextWorkout, setNextWorkout] = useState<{ name: string; workoutDate: string } | null>(null);
     const apiBaseUrl = 'http://localhost:5026';
-    const todayDate = new Date().toISOString().split('T')[0];
+    const todayDate = toLocalDateString(new Date());
 
     // TODO!
     // Hämta data om dagens pass här
@@ -22,55 +23,57 @@ export default function HomeScreen(){
         weeklyWorkoutGoal: 3,
     };
 
-    useEffect(() => {
-        let isMounted = true;
+    useFocusEffect(
+        useCallback(() => {
+            let isActive = true;
 
-        async function fetchTodaysWorkout() {
-            try {
-                const response = await fetch(`${apiBaseUrl}/Workout/Workouts`);
-                if (!response.ok) return;
-                const data: { workout?: { name?: string; workoutDate?: string, completed?: boolean } }[] = await response.json();
-                const workout = data
-                    .map(item => item.workout)
-                    .find(item => {
-                        if (!item?.workoutDate) return false;
-                        const dateOnly = new Date(item.workoutDate).toISOString().split('T')[0];
-                        return dateOnly === todayDate;
-                    });
+            async function fetchTodaysWorkout() {
+                try {
+                    const response = await fetch(`${apiBaseUrl}/Workout/Workouts`);
+                    if (!response.ok) return;
+                    const data: { workout?: { name?: string; workoutDate?: string, completed?: boolean } }[] = await response.json();
+                    const workout = data
+                        .map(item => item.workout)
+                        .find(item => {
+                            if (!item?.workoutDate) return false;
+                            const dateOnly = toLocalDateString(new Date(item.workoutDate));
+                            return dateOnly === todayDate;
+                        });
 
-                const upcomingWorkout = data
-                    .map(item => item.workout)
-                    .filter(item => item?.workoutDate)
-                    .map(item => {
-                        const dateOnly = new Date(item!.workoutDate!).toISOString().split('T')[0];
-                        return {
-                            name: item!.name ?? 'Pass',
-                            workoutDate: dateOnly,
-                        };
-                    })
-                    .filter(item => item.workoutDate > todayDate)
-                    .sort((a, b) => (a.workoutDate > b.workoutDate ? 1 : -1))[0] ?? null;
+                    const upcomingWorkout = data
+                        .map(item => item.workout)
+                        .filter(item => item?.workoutDate)
+                        .map(item => {
+                            const dateOnly = toLocalDateString(new Date(item!.workoutDate!));
+                            return {
+                                name: item!.name ?? 'Pass',
+                                workoutDate: dateOnly,
+                            };
+                        })
+                        .filter(item => item.workoutDate > todayDate)
+                        .sort((a, b) => (a.workoutDate > b.workoutDate ? 1 : -1))[0] ?? null;
 
-                if (!isMounted) return;
-                setTodaysWorkout(
-                    workout?.name && workout.workoutDate
-                        ? { name: workout.name, workoutDate: workout.workoutDate, completed: workout.completed }
-                        : null
-                );
-                setNextWorkout(upcomingWorkout);
-            } catch (error) {
-                if (!isMounted) return;
-                setTodaysWorkout(null);
-                setNextWorkout(null);
+                    if (!isActive) return;
+                    setTodaysWorkout(
+                        workout?.name && workout.workoutDate
+                            ? { name: workout.name, workoutDate: workout.workoutDate, completed: workout.completed }
+                            : null
+                    );
+                    setNextWorkout(upcomingWorkout);
+                } catch (error) {
+                    if (!isActive) return;
+                    setTodaysWorkout(null);
+                    setNextWorkout(null);
+                }
             }
-        }
 
-        fetchTodaysWorkout();
+            fetchTodaysWorkout();
 
-        return () => {
-            isMounted = false;
-        };
-    }, [apiBaseUrl]);
+            return () => {
+                isActive = false;
+            };
+        }, [apiBaseUrl, todayDate])
+    );
     let intoText = () => {
         return (
             <Text style={style.introText}>{todaysWorkout != null ? 

@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { RootTabParamList } from '../navigations/types';
+import { toLocalDateString } from '../utils/date';
 
 type Props = BottomTabScreenProps<RootTabParamList, 'WorkoutDetailScreen'>;
 
@@ -68,7 +69,7 @@ export default function WorkoutDetailScreen({ route, navigation }: Props) {
         .map(item => item.workout)
         .filter(workout => {
           if (!workout.workoutDate) return false;
-          const dateOnly = new Date(workout.workoutDate).toISOString().split('T')[0];
+          const dateOnly = toLocalDateString(new Date(workout.workoutDate));
           return dateOnly === date;
         });
       setWorkouts(matching);

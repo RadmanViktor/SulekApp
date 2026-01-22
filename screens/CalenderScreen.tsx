@@ -1,11 +1,12 @@
-import React, { useMemo, useEffect, useState } from 'react';
-import { StyleSheet } from 'react-native';
+import React, { useMemo, useEffect, useState, useCallback } from 'react';
+import { Alert, StyleSheet } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CalendarList } from 'react-native-calendars';
 import '../config/calendarLocale'; 
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { RootTabParamList } from '../navigations/types';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import { toLocalDateString } from '../utils/date';
 
 type CalenderNav = BottomTabNavigationProp<RootTabParamList, "CalenderScreen">;
 
@@ -13,37 +14,81 @@ export default function CalendarScreen() {
   const navigation = useNavigation<CalenderNav>();
   const insets = useSafeAreaInsets();
   const [workoutDates, setWorkoutDates] = useState<string[]>([]);
+  const [workoutByDate, setWorkoutByDate] = useState<Record<string, number>>({});
   const apiBaseUrl = 'http://localhost:5026';
 
-  useEffect(() => {
-    let isMounted = true;
+  const fetchWorkouts = useCallback(async () => {
+    try {
+      const response = await fetch(`${apiBaseUrl}/Workout/Workouts`);
+      if (!response.ok) return;
+      const data: { workout?: { id?: number; workoutDate?: string } }[] = await response.json();
 
-    async function fetchWorkouts() {
-      try {
-        const response = await fetch(`${apiBaseUrl}/Workout/Workouts`);
-        if (!response.ok) return;
-        const data: { workout?: { workoutDate?: string } }[] = await response.json();
+      const entries = data
+        .map(item => item?.workout)
+        .filter((workout): workout is { id: number; workoutDate: string } => Boolean(workout?.id && workout?.workoutDate))
+        .map(workout => ({
+          id: workout.id,
+          date: toLocalDateString(new Date(workout.workoutDate)),
+        }));
 
-        const dates = data
-          .map(item => item?.workout?.workoutDate)
-          .filter((workoutDate): workoutDate is string => Boolean(workoutDate))
-          .map(workoutDate => new Date(workoutDate).toISOString().split('T')[0]);
+      const dates = entries.map(entry => entry.date);
+      const mapByDate = entries.reduce<Record<string, number>>((acc, entry) => {
+        acc[entry.date] = entry.id;
+        return acc;
+      }, {});
 
-        console.log('Fetched workout dates:', dates);
-        if (!isMounted) return;
-        setWorkoutDates(Array.from(new Set(dates)));
-      } catch (error) {
-        if (!isMounted) return;
-        setWorkoutDates([]);
-      }
+      setWorkoutDates(Array.from(new Set(dates)));
+      setWorkoutByDate(mapByDate);
+    } catch (error) {
+      setWorkoutDates([]);
+      setWorkoutByDate({});
     }
-
-    fetchWorkouts();
-
-    return () => {
-      isMounted = false;
-    };
   }, [apiBaseUrl]);
+
+  useEffect(() => {
+    fetchWorkouts();
+  }, [fetchWorkouts]);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchWorkouts();
+    }, [fetchWorkouts])
+  );
+
+  const handleDeleteWorkout = useCallback(
+    (dateString: string) => {
+      const workoutId = workoutByDate[dateString];
+      if (!workoutId) return;
+
+      Alert.alert(
+        'Ta bort pass',
+        'Vill du ta bort passet för det här datumet?',
+        [
+          { text: 'Avbryt', style: 'cancel' },
+          {
+            text: 'Ta bort',
+            style: 'destructive',
+            onPress: async () => {
+              try {
+                const response = await fetch(`${apiBaseUrl}/Workout/Workouts/${workoutId}/Delete`, {
+                  method: 'PUT',
+                });
+                if (!response.ok) {
+                  const message = await response.text();
+                  Alert.alert('Kunde inte ta bort pass', message || 'Något gick fel.');
+                  return;
+                }
+                await fetchWorkouts();
+              } catch (error) {
+                Alert.alert('Kunde inte ta bort pass', 'Kontrollera att API:t är igång.');
+              }
+            },
+          },
+        ]
+      );
+    },
+    [apiBaseUrl, fetchWorkouts, workoutByDate]
+  );
 
   const markedDates = useMemo(() => {
     return workoutDates.reduce<Record<string, any>>((acc, date) => {
@@ -69,6 +114,11 @@ export default function CalendarScreen() {
             return;
           }
           navigation.navigate('CreateWorkoutScreen', { date: day.dateString });
+        }}
+        onDayLongPress={(day) => {
+          if (workoutDates.includes(day.dateString)) {
+            handleDeleteWorkout(day.dateString);
+          }
         }}
         theme={{
           backgroundColor: '#F3F4F6',

@@ -8,6 +8,7 @@ import RNDateTimePicker from '@react-native-community/datetimepicker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { RootTabParamList } from '../navigations/types';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
+import { toLocalDateString } from '../utils/date';
 
 type Props = BottomTabScreenProps<RootTabParamList, "CreateWorkoutScreen">;
 
@@ -102,7 +103,7 @@ export default function CreateWorkoutScreen({ route, navigation }: Props) {
       .map(exerciceId => ({ exerciceId, workoutId: 0 }));
 
     try {
-      const selectedDate = date.toISOString().split('T')[0];
+      const selectedDate = toLocalDateString(date);
       const existingResponse = await fetch(`${apiBaseUrl}/Workout/Workouts`);
       if (existingResponse.ok) {
         const existingData: { workout?: { workoutDate?: string } }[] = await existingResponse.json();
@@ -110,7 +111,8 @@ export default function CreateWorkoutScreen({ route, navigation }: Props) {
           .map(item => item.workout)
           .some(workout => {
             if (!workout?.workoutDate) return false;
-            const workoutDate = new Date(workout.workoutDate).toISOString().split('T')[0];
+            const workoutDateValue = new Date(workout.workoutDate);
+            const workoutDate = toLocalDateString(workoutDateValue);
             return workoutDate === selectedDate;
           });
 
@@ -123,7 +125,7 @@ export default function CreateWorkoutScreen({ route, navigation }: Props) {
 
       const payload = {
         name: name.trim(),
-        workoutDate: date.toISOString(),
+        workoutDate: `${selectedDate}T00:00:00`,
         completed: false,
         workoutExerciseDtos,
       };
