@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { StyleSheet, View, Text, TextInput, TouchableOpacity, ScrollView, Platform, StatusBar, Pressable, Alert, ActivityIndicator } from 'react-native';
+import { StyleSheet, View, Text, TextInput, ScrollView, Platform, StatusBar, Pressable, Alert, ActivityIndicator } from 'react-native';
 import { DropItem } from '../components/Dropdown';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -15,13 +15,10 @@ export default function CreateWorkoutScreen({ route, navigation }: Props) {
   const [name, setName] = useState('');
   const [date, setDate] = useState<Date>(() => paramDate ?? new Date());
   const [isSaving, setIsSaving] = useState(false);
+  const [exercises, setExercises] = useState<{ id: number; name: string }[]>([]);
+  const [isLoadingExercises, setIsLoadingExercises] = useState(false);
 
   const apiBaseUrl = 'http://localhost:5026';
-  const exerciseIdMap: Record<string, number> = {
-    'Bänkpress': 1,
-    'Knäböj': 2,
-    'Marklyft': 3,
-  };
 
   const paramDate = useMemo(() => {
     const raw = route.params?.date;
@@ -35,6 +32,33 @@ export default function CreateWorkoutScreen({ route, navigation }: Props) {
     if (paramDate) setDate(paramDate);
   }, [paramDate]);
 
+  useEffect(() => {
+    let isMounted = true;
+
+    async function fetchExercises() {
+      setIsLoadingExercises(true);
+      try {
+        const response = await fetch(`${apiBaseUrl}/Exercise/Exercises`);
+        if (!response.ok) return;
+        const data: { id: number; name: string }[] = await response.json();
+        if (!isMounted) return;
+        setExercises(data);
+      } catch (error) {
+        if (!isMounted) return;
+        setExercises([]);
+      } finally {
+        if (!isMounted) return;
+        setIsLoadingExercises(false);
+      }
+    }
+
+    fetchExercises();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [apiBaseUrl]);
+
   const onChange = (_event: any, selectedDate?: Date) => {
     if (!selectedDate) return; // iOS kan skicka undefined vid cancel
     setDate(selectedDate);
@@ -45,6 +69,10 @@ export default function CreateWorkoutScreen({ route, navigation }: Props) {
   async function handleSaveWorkout() {
     if (isSaving) return;
     setIsSaving(true);
+    const exerciseIdMap = exercises.reduce<Record<string, number>>((acc, exercise) => {
+      acc[exercise.name] = exercise.id;
+      return acc;
+    }, {});
     const workoutExerciseDtos = selectedExercises
       .map(exercise => exerciseIdMap[exercise])
       .filter(Boolean)
@@ -98,8 +126,8 @@ export default function CreateWorkoutScreen({ route, navigation }: Props) {
         <View style={styles.inputContainer}>
           <Dropdown
             label="Övningar"
-            placeholder="Välj övningar"
-            items={[{data: "Bänkpress"}, {data: "Knäböj"}, {data: "Marklyft"}]}
+            placeholder={isLoadingExercises ? "Hämtar övningar..." : "Välj övningar"}
+            items={exercises.map(exercise => ({ data: exercise.name }))}
             value={selectedExercises}
             onChange={setSelectedExercises}        // få uppdateringar
           />
@@ -116,7 +144,7 @@ export default function CreateWorkoutScreen({ route, navigation }: Props) {
 
         <Pressable
           onPress={handleSaveWorkout}
-          disabled={!name.trim() || selectedExercises.length === 0 || isSaving}
+          disabled={!name.trim() || selectedExercises.length === 0 || isSaving || isLoadingExercises}
           style={{ marginTop: 32 }}
         >
           <LinearGradient
@@ -125,7 +153,7 @@ export default function CreateWorkoutScreen({ route, navigation }: Props) {
             end={{ x: 1, y: 1 }}
             style={[
               styles.button,
-              (selectedExercises.length === 0 || name == '' || isSaving) && styles.buttonDisabled,
+              (selectedExercises.length === 0 || name == '' || isSaving || isLoadingExercises) && styles.buttonDisabled,
             ]}
           >
             {isSaving ? (
