@@ -82,6 +82,39 @@ export default function WorkoutDetailScreen({ route, navigation }: Props) {
     loadWorkouts();
   }, [loadWorkouts]);
 
+  useEffect(() => {
+    if (workouts.length === 0) return;
+    setSetDrafts(prev => {
+      let next = prev;
+      let updated = false;
+
+      workouts.forEach(workout => {
+        (workout.exercises ?? []).forEach(exercise => {
+          const key = `${workout.id ?? workout.name}-${exercise.workoutExerciseId ?? exercise.name}`;
+          const current = next[key];
+          if (current?.setNum) return;
+
+          const maxSetNum = Math.max(0, ...(exercise.sets ?? []).map(set => set.setNum));
+          const suggested = String(maxSetNum + 1);
+
+          next = {
+            ...next,
+            [key]: {
+              setNum: suggested,
+              reps: current?.reps ?? '',
+              weightKg: current?.weightKg ?? '',
+              notes: current?.notes ?? '',
+              isSaving: current?.isSaving,
+            },
+          };
+          updated = true;
+        });
+      });
+
+      return updated ? next : prev;
+    });
+  }, [workouts]);
+
   const handleDraftChange = (key: string, next: Partial<SetDraft>) => {
     setSetDrafts(prev => ({
       ...prev,
@@ -109,9 +142,21 @@ export default function WorkoutDetailScreen({ route, navigation }: Props) {
       return;
     }
 
+    const setNum = Number(draft.setNum);
+    if (!Number.isFinite(setNum) || setNum <= 0) {
+      Alert.alert('Felaktigt setnummer', 'Setnumret måste vara större än 0.');
+      return;
+    }
+
+    const existingSetNums = (exercise.sets ?? []).map(set => set.setNum);
+    if (existingSetNums.includes(setNum)) {
+      Alert.alert('Setnummer finns redan', 'Välj ett nytt setnummer för övningen.');
+      return;
+    }
+
     const payload = {
       workoutExerciseId,
-      setNum: Number(draft.setNum),
+      setNum,
       reps: Number(draft.reps),
       weightKg: draft.weightKg ? Number(draft.weightKg) : null,
       notes: draft.notes.trim() || null,
@@ -131,7 +176,14 @@ export default function WorkoutDetailScreen({ route, navigation }: Props) {
         return;
       }
 
-      handleDraftChange(key, { setNum: '', reps: '', weightKg: '', notes: '', isSaving: false });
+      const nextSetNum = Math.max(setNum, ...existingSetNums) + 1;
+      handleDraftChange(key, {
+        setNum: String(nextSetNum),
+        reps: '',
+        weightKg: '',
+        notes: '',
+        isSaving: false,
+      });
       await loadWorkouts();
     } catch (error) {
       Alert.alert('Kunde inte spara set', 'Kontrollera att API:t är igång.');
@@ -278,7 +330,7 @@ export default function WorkoutDetailScreen({ route, navigation }: Props) {
                       workout.completed && styles.completeButtonTextDone,
                     ]}
                   >
-                    {workout.completed ? 'Klart' : 'Markera som klar'}
+                    {workout.completed ? 'Klart' : 'Markera pass som klart'}
                   </Text>
                 )}
               </Pressable>
