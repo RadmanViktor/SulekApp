@@ -28,7 +28,6 @@ export default function CalendarScreen() {
           .map(item => item?.workout?.workoutDate)
           .filter((workoutDate): workoutDate is string => Boolean(workoutDate))
           .map(workoutDate => new Date(workoutDate).toISOString().split('T')[0]);
-          console.log('Dates!' + dates);
         if (!isMounted) return;
         setWorkoutDates(Array.from(new Set(dates)));
       } catch (error) {
@@ -89,7 +88,5 @@ const styles = StyleSheet.create({
     alignContent: 'center',
     justifyContent: 'center',
     backgroundColor: '#F3F4F6',
-  },
-  calendar: {
-  },
+  }
 });

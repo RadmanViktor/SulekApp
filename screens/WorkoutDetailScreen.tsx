@@ -26,6 +26,7 @@ type WorkoutDto = {
   name: string;
   workoutDate?: string;
   notes?: string | null;
+  completed?: boolean;
   exercises?: ExerciseDto[];
 };
 
@@ -47,6 +48,7 @@ export default function WorkoutDetailScreen({ route, navigation }: Props) {
   const [workouts, setWorkouts] = useState<WorkoutDto[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [setDrafts, setSetDrafts] = useState<Record<string, SetDraft>>({});
+  const [completingWorkouts, setCompletingWorkouts] = useState<Record<number, boolean>>({});
   const date = route.params.date;
 
   const headerTitle = useMemo(() => {
@@ -138,6 +140,31 @@ export default function WorkoutDetailScreen({ route, navigation }: Props) {
     }
   };
 
+  const markWorkoutCompleted = async (workoutId?: number) => {
+    if (!workoutId) return;
+    if (completingWorkouts[workoutId]) return;
+
+    setCompletingWorkouts(prev => ({ ...prev, [workoutId]: true }));
+    try {
+      const response = await fetch(`${apiBaseUrl}/Workout/Workouts/${workoutId}/Complete`, {
+        method: 'PUT',
+      });
+
+      if (!response.ok) {
+        const message = await response.text();
+        Alert.alert('Kunde inte markera pass', message || 'Något gick fel.');
+        return;
+      }
+
+      await loadWorkouts();
+      Alert.alert('Klart', 'Passet är markerat som klart.');
+    } catch (error) {
+      Alert.alert('Kunde inte markera pass', 'Kontrollera att API:t är igång.');
+    } finally {
+      setCompletingWorkouts(prev => ({ ...prev, [workoutId]: false }));
+    }
+  };
+
   return (
     <SafeAreaView style={styles.wrapper} edges={['top', 'left', 'right']}>
       <ScrollView contentContainerStyle={styles.content}>
@@ -153,7 +180,11 @@ export default function WorkoutDetailScreen({ route, navigation }: Props) {
         ) : workouts.length === 0 ? (
           <Text style={styles.helper}>Inga pass hittades för detta datum.</Text>
         ) : (
-          workouts.map(workout => (
+          workouts.map(workout => {
+            const workoutId = workout.id;
+            const isCompleting = workoutId ? completingWorkouts[workoutId] : false;
+
+            return (
             <View key={`${workout.name}-${workout.workoutDate}`} style={styles.workoutCard}>
               {workout.notes ? <Text style={styles.workoutNotes}>{workout.notes}</Text> : null}
 
@@ -223,14 +254,37 @@ export default function WorkoutDetailScreen({ route, navigation }: Props) {
                       {draft?.isSaving ? (
                         <ActivityIndicator color="#fff" />
                       ) : (
-                        <Text style={styles.addButtonText}>Lagg till set</Text>
+                        <Text style={styles.addButtonText}>Lägg till set</Text>
                       )}
                     </Pressable>
                   </View>
                 );
               })}
+              <Pressable
+                style={[
+                  styles.completeButton,
+                  workout.completed && styles.completeButtonDone,
+                  isCompleting && styles.completeButtonDisabled,
+                ]}
+                onPress={() => markWorkoutCompleted(workoutId)}
+                disabled={!workoutId || !!workout.completed || isCompleting}
+              >
+                {isCompleting ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text
+                    style={[
+                      styles.completeButtonText,
+                      workout.completed && styles.completeButtonTextDone,
+                    ]}
+                  >
+                    {workout.completed ? 'Klart' : 'Markera som klar'}
+                  </Text>
+                )}
+              </Pressable>
             </View>
-          ))
+          );
+          })
         )}
       </ScrollView>
     </SafeAreaView>
@@ -357,5 +411,26 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 14,
     fontFamily: 'Poppins_400Regular',
+  },
+  completeButton: {
+    marginTop: 16,
+    backgroundColor: '#0D9488',
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  completeButtonDisabled: {
+    opacity: 0.7,
+  },
+  completeButtonDone: {
+    backgroundColor: '#94A3B8',
+  },
+  completeButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontFamily: 'Poppins_400Regular',
+  },
+  completeButtonTextDone: {
+    color: '#F8FAFC',
   },
 });

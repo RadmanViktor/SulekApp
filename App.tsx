@@ -58,7 +58,7 @@ export default function App() {
               let iconName: keyof typeof Ionicons.glyphMap = 'home-outline';
 
               if (route.name === 'HomeScreen') {
-                iconName = focused ? 'barbell' : 'barbell-outline';
+                iconName = focused ? 'home' : 'home-outline';
               } else if (route.name === 'CreateWorkoutScreen') {
                 iconName = focused ? 'add-circle' : 'add-circle-outline';
               } else if (route.name === 'CalenderScreen') {
@@ -72,7 +72,15 @@ export default function App() {
           })}
         >
           <Tab.Screen name="HomeScreen" component={HomeScreen} options={{title: 'Hem'}}/>
-          <Tab.Screen name="CreateWorkoutScreen" component={CreateWorkoutScreen} options={{ title: 'Nytt' }} />
+          <Tab.Screen
+            name="CreateWorkoutScreen"
+            component={CreateWorkoutScreen}
+            options={{
+              title: 'Nytt',
+              tabBarButton: () => null,
+              tabBarItemStyle: { display: 'none' },
+            }}
+          />
           <Tab.Screen name="CalenderScreen" component={CalenderScreen} options={{ title: 'Kalender' }} />
           <Tab.Screen
             name="ProfileScreen"

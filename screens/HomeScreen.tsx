@@ -11,6 +11,7 @@ export default function HomeScreen(){
     const navigation = useNavigation<HomeNav>();
     const [todaysWorkout, setTodaysWorkout] = useState<{ name: string; workoutDate: string } | null>(null);
     const apiBaseUrl = 'http://localhost:5026';
+    const todayDate = new Date().toISOString().split('T')[0];
 
     // TODO!
     // Hämta data om dagens pass här
@@ -28,14 +29,12 @@ export default function HomeScreen(){
                 const response = await fetch(`${apiBaseUrl}/Workout/Workouts`);
                 if (!response.ok) return;
                 const data: { workout?: { name?: string; workoutDate?: string } }[] = await response.json();
-                const today = new Date().toISOString().split('T')[0];
-
                 const workout = data
                     .map(item => item.workout)
                     .find(item => {
                         if (!item?.workoutDate) return false;
                         const dateOnly = new Date(item.workoutDate).toISOString().split('T')[0];
-                        return dateOnly === today;
+                        return dateOnly === todayDate;
                     });
 
                 if (!isMounted) return;
@@ -60,7 +59,7 @@ export default function HomeScreen(){
         return (
             <Text style={style.introText}>{todaysWorkout != null ? 
                 `Idag står det ${todaysWorkout.name} på schemat! 💪` 
-                : "Inget pass registrerat idag!" }</Text>
+                : "Inget pass registrerat idag. Vill du skapa ett direkt?" }</Text>
         );
     };
     return(
@@ -76,7 +75,14 @@ export default function HomeScreen(){
                 >
                     <Text style={style.quickButtonText}>Visa pass</Text>
                 </Pressable>
-            ) : null}
+            ) : (
+                <Pressable
+                    style={style.quickButtonSecondary}
+                    onPress={() => navigation.navigate('CreateWorkoutScreen', { date: todayDate })}
+                >
+                    <Text style={style.quickButtonSecondaryText}>Skapa pass</Text>
+                </Pressable>
+            )}
             <View style={style.container}>
                 <Text style={style.regularText}>🔥 2 veckor i rad med minst {goals.weeklyWorkoutGoal} pass</Text>
             </View>
@@ -116,6 +122,20 @@ const style = StyleSheet.create({
   },
   quickButtonText: {
     color: '#fff',
+    fontSize: 14,
+    fontFamily: 'Poppins_400Regular',
+  },
+  quickButtonSecondary: {
+    marginTop: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#14B8A6',
+    backgroundColor: 'transparent',
+  },
+  quickButtonSecondaryText: {
+    color: '#14B8A6',
     fontSize: 14,
     fontFamily: 'Poppins_400Regular',
   },

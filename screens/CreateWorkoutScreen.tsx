@@ -104,6 +104,7 @@ export default function CreateWorkoutScreen({ route, navigation }: Props) {
     const payload = {
       name: name.trim(),
       workoutDate: date.toISOString(),
+      completed: false,
       workoutExerciseDtos,
     };
 

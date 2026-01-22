@@ -130,7 +130,7 @@ export default function Dropdown({
                 {isCreating ? (
                   <ActivityIndicator color="#0F172A" />
                 ) : (
-                  <Text style={styles.createText}>Lagg till "{searchText.trim()}"</Text>
+                  <Text style={styles.createText}>Lägg till "{searchText.trim()}"</Text>
                 )}
               </Pressable>
             ) : null}
