@@ -8,10 +8,11 @@ import RNDateTimePicker from '@react-native-community/datetimepicker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { RootTabParamList } from '../navigations/types';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
+import ProfileButton from '../components/ProfileButton';
 
 type Props = BottomTabScreenProps<RootTabParamList, "CreateWorkoutScreen">;
 
-export default function CreateWorkoutScreen({route}: Props) {
+export default function CreateWorkoutScreen({ route, navigation }: Props) {
   const [name, setName] = useState('');
   const [date, setDate] = useState<Date>(() => paramDate ?? new Date());
 
@@ -41,6 +42,7 @@ export default function CreateWorkoutScreen({route}: Props) {
 
   return (
       <SafeAreaView style={{ flex: 1 }} edges={['right', 'left', 'top']}>
+      <ProfileButton onPress={() => navigation.navigate('ProfileScreen')} />
       <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40 }}>
         <Text style={styles.header}>Skapa nytt träningspass</Text>
 

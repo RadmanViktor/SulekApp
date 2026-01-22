@@ -10,6 +10,7 @@ import HomeScreen from './screens/HomeScreen';
 import CreateWorkoutScreen from './screens/CreateWorkoutScreen';
 import CalenderScreen from './screens/CalenderScreen';
 import ProfileScreen from './screens/ProfileScreen';
+import ProgressScreen from './screens/ProgressScreen';
 import { RootTabParamList } from './navigations/types';
 
 const Tab = createBottomTabNavigator<RootTabParamList>();
@@ -59,6 +60,8 @@ export default function App() {
                 iconName = focused ? 'add-circle' : 'add-circle-outline';
               } else if (route.name === 'CalenderScreen') {
                 iconName = focused ? 'calendar' : 'calendar-outline';
+              } else if (route.name === 'ProgressScreen') {
+                iconName = focused ? 'stats-chart' : 'stats-chart-outline';
               }
 
               return <Ionicons name={iconName} size={size} color={color} />;
@@ -74,6 +77,14 @@ export default function App() {
             options={{
               title: 'Profil',
               tabBarButton: () => null,
+              tabBarItemStyle: { display: 'none' },
+            }}
+          />
+          <Tab.Screen
+            name="ProgressScreen"
+            component={ProgressScreen}
+            options={{
+              title: 'Progress',
             }}
           />
         </Tab.Navigator>

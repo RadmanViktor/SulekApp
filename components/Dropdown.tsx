@@ -8,6 +8,7 @@ type Props = {
   placeholder: string;
   items: DropItem[];
   label: string;
+  singleSelect?: boolean;
 
   // nya props för controlled mode
   value?: string[];                         // aktuell selection från parent
@@ -19,6 +20,7 @@ export default function Dropdown({
   placeholder,
   items,
   label,
+  singleSelect = false,
   onChange,
 }: Props) {
   const [open, setOpen] = useState(false);
@@ -31,11 +33,12 @@ export default function Dropdown({
   }, [selected, placeholder]);
 
   function toggleItem(item: string) {
-    setBoth(
-      selected.includes(item)
-        ? selected.filter(x => x !== item)
-        : [...selected, item]
-    );
+    if (singleSelect) {
+      setBoth(selected.includes(item) ? [] : [item]);
+      return;
+    }
+
+    setBoth(selected.includes(item) ? selected.filter(x => x !== item) : [...selected, item]);
   }
 
   function setBoth(next: string[]) {
@@ -44,12 +47,12 @@ export default function Dropdown({
   }
 
   function removeChip(item: string) {
-    setSelected(prev => prev.filter(x => x !== item));
-    setBoth(
-      selected.includes(item)
-        ? selected.filter(x => x !== item)
-        : [...selected, item]
-    );
+    if (singleSelect) {
+      setBoth([]);
+      return;
+    }
+
+    setBoth(selected.includes(item) ? selected.filter(x => x !== item) : [...selected, item]);
   }
 
   return (

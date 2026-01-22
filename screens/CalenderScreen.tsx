@@ -1,16 +1,19 @@
 import React, { useMemo } from 'react';
-import { StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { StyleSheet, Pressable } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CalendarList } from 'react-native-calendars';
 import '../config/calendarLocale'; 
 import { useNavigation } from '@react-navigation/native';
 import { RootTabParamList } from '../navigations/types';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import { Ionicons } from '@expo/vector-icons';
+import ProfileButton from '../components/ProfileButton';
 
 type CalenderNav = BottomTabNavigationProp<RootTabParamList, "CalenderScreen">;
 
 export default function CalendarScreen() {
   const navigation = useNavigation<CalenderNav>();
+  const insets = useSafeAreaInsets();
   const workoutDates = ['2026-01-21', '2026-01-27'];
 
   const markedDates = useMemo(() => {
@@ -22,6 +25,13 @@ export default function CalendarScreen() {
 
   return (
     <SafeAreaView style={styles.wrapper} edges={['top', 'left', 'right']}>
+      <Pressable
+        style={[styles.progressButton, { top: insets.top + 12 }]}
+        onPress={() => navigation.navigate('ProgressScreen')}
+      >
+        <Ionicons name="stats-chart" size={22} color="#0F172A" />
+      </Pressable>
+      <ProfileButton onPress={() => navigation.navigate('ProfileScreen')} />
       <CalendarList
         firstDay={1}
         horizontal
@@ -52,6 +62,20 @@ const styles = StyleSheet.create({
     alignContent: 'center',
     justifyContent: 'center',
     backgroundColor: '#F3F4F6',
+  },
+  progressButton: {
+    position: 'absolute',
+    right: 74,
+    zIndex: 10,
+    elevation: 10,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   calendar: {
   },
