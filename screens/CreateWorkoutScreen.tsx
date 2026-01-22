@@ -59,6 +59,29 @@ export default function CreateWorkoutScreen({ route, navigation }: Props) {
     };
   }, [apiBaseUrl]);
 
+  const handleCreateExercise = async (name: string) => {
+    try {
+      const response = await fetch(`${apiBaseUrl}/Exercise/CreateExercise`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name }),
+      });
+
+      if (!response.ok) {
+        const message = await response.text();
+        Alert.alert('Kunde inte skapa ovning', message || 'Något gick fel.');
+        return null;
+      }
+
+      const created: { id: number; name: string } = await response.json();
+      setExercises(prev => [...prev, created].sort((a, b) => a.name.localeCompare(b.name)));
+      return { data: created.name };
+    } catch (error) {
+      Alert.alert('Kunde inte skapa ovning', 'Kontrollera att API:t är igång.');
+      return null;
+    }
+  };
+
   const onChange = (_event: any, selectedDate?: Date) => {
     if (!selectedDate) return; // iOS kan skicka undefined vid cancel
     setDate(selectedDate);
@@ -129,6 +152,7 @@ export default function CreateWorkoutScreen({ route, navigation }: Props) {
             placeholder={isLoadingExercises ? "Hämtar övningar..." : "Välj övningar"}
             items={exercises.map(exercise => ({ data: exercise.name }))}
             value={selectedExercises}
+            onCreateItem={handleCreateExercise}
             onChange={setSelectedExercises}        // få uppdateringar
           />
         </View>

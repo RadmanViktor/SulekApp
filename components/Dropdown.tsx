@@ -1,4 +1,4 @@
-import { View, Text, Pressable, Modal, FlatList, StyleSheet } from "react-native";
+import { View, Text, Pressable, Modal, FlatList, StyleSheet, TextInput, ActivityIndicator } from "react-native";
 import { useState, useMemo, useEffect } from "react";
 import { LinearGradient } from "expo-linear-gradient";
 
@@ -14,6 +14,7 @@ type Props = {
   value?: string[];                         // aktuell selection från parent
   defaultValue?: string[];                  // initial selection om du vill
   onChange?: (next: string[]) => void;      // callback till parent
+  onCreateItem?: (name: string) => Promise<DropItem | null>;
 };
 
 export default function Dropdown({
@@ -24,9 +25,12 @@ export default function Dropdown({
   value,
   defaultValue,
   onChange,
+  onCreateItem,
 }: Props) {
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<string[]>(defaultValue ?? []);
+  const [searchText, setSearchText] = useState('');
+  const [isCreating, setIsCreating] = useState(false);
 
   useEffect(() => {
     if (value) setSelected(value);
@@ -37,6 +41,12 @@ export default function Dropdown({
     if (selected.length === 1) return selected[0];
     return `Valda: ${selected.length}`;
   }, [selected, placeholder]);
+
+  const filteredItems = useMemo(() => {
+    const query = searchText.trim().toLowerCase();
+    if (!query) return items;
+    return items.filter(item => item.data.toLowerCase().includes(query));
+  }, [items, searchText]);
 
   function toggleItem(item: string) {
     if (singleSelect) {
@@ -59,6 +69,24 @@ export default function Dropdown({
     }
 
     setBoth(selected.includes(item) ? selected.filter(x => x !== item) : [...selected, item]);
+  }
+
+  async function handleCreateItem() {
+    const name = searchText.trim();
+    if (!name || !onCreateItem) return;
+    setIsCreating(true);
+    try {
+      const created = await onCreateItem(name);
+      if (!created) return;
+      setSearchText('');
+      if (singleSelect) {
+        setBoth([created.data]);
+      } else {
+        setBoth(selected.includes(created.data) ? selected : [...selected, created.data]);
+      }
+    } finally {
+      setIsCreating(false);
+    }
   }
 
   return (
@@ -88,8 +116,26 @@ export default function Dropdown({
       <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
         <Pressable style={styles.backdrop} onPress={() => setOpen(false)}>
           <View style={styles.dropdown}>
+            <View style={styles.searchRow}>
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Sok ovning"
+                value={searchText}
+                onChangeText={setSearchText}
+                placeholderTextColor="#9ca3af"
+              />
+            </View>
+            {searchText.trim().length > 0 && filteredItems.length === 0 && onCreateItem ? (
+              <Pressable style={styles.createRow} onPress={handleCreateItem} disabled={isCreating}>
+                {isCreating ? (
+                  <ActivityIndicator color="#0F172A" />
+                ) : (
+                  <Text style={styles.createText}>Lagg till "{searchText.trim()}"</Text>
+                )}
+              </Pressable>
+            ) : null}
             <FlatList
-              data={items}
+              data={filteredItems}
               keyExtractor={(item) => item.data}
               renderItem={({ item }) => {
                 const isActive = selected.includes(item.data);
@@ -193,6 +239,35 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     paddingVertical: 8,
     elevation: 5,
+  },
+  searchRow: {
+    paddingHorizontal: 12,
+    paddingBottom: 8,
+  },
+  searchInput: {
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    fontFamily: 'Poppins_400Regular',
+    fontSize: 14,
+    color: '#111827',
+    backgroundColor: '#f8fafc',
+  },
+  createRow: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginHorizontal: 12,
+    marginBottom: 8,
+    borderRadius: 8,
+    backgroundColor: '#f1f5f9',
+    alignItems: 'center',
+  },
+  createText: {
+    fontFamily: 'Poppins_400Regular',
+    fontSize: 14,
+    color: '#0F172A',
   },
   item: {
     paddingVertical: 12,
