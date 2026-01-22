@@ -78,6 +78,12 @@ export default function CalendarScreen() {
                   Alert.alert('Kunde inte ta bort pass', message || 'Något gick fel.');
                   return;
                 }
+                setWorkoutDates(prev => prev.filter(date => date !== dateString));
+                setWorkoutByDate(prev => {
+                  const next = { ...prev };
+                  delete next[dateString];
+                  return next;
+                });
                 await fetchWorkouts();
               } catch (error) {
                 Alert.alert('Kunde inte ta bort pass', 'Kontrollera att API:t är igång.');

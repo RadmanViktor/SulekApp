@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { StyleSheet, View, Text, TextInput, ScrollView, Platform, StatusBar, Pressable, Alert, ActivityIndicator } from 'react-native';
+import { StyleSheet, View, Text, TextInput, ScrollView, Platform, StatusBar, Pressable, Alert, ActivityIndicator, Modal, Dimensions } from 'react-native';
 import { DropItem } from '../components/Dropdown';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -18,6 +18,8 @@ export default function CreateWorkoutScreen({ route, navigation }: Props) {
   const [isSaving, setIsSaving] = useState(false);
   const [exercises, setExercises] = useState<{ id: number; name: string }[]>([]);
   const [isLoadingExercises, setIsLoadingExercises] = useState(false);
+  const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
+  const modalMaxHeight = Math.round(Dimensions.get('window').height * 0.7);
   const templates = [
     {
       title: 'Push-pass',
@@ -38,6 +40,26 @@ export default function CreateWorkoutScreen({ route, navigation }: Props) {
       title: 'Helkropp',
       focus: 'Basövningar',
       exercises: ['Knäböj', 'Bänkpress', 'Skivstångsrodd', 'Militärpress'],
+    },
+    {
+      title: 'Upper body',
+      focus: 'Överkropp',
+      exercises: ['Bänkpress', 'Latsdrag', 'Axelpress', 'Hantelrodd'],
+    },
+    {
+      title: 'Lower body',
+      focus: 'Underkropp',
+      exercises: ['Knäböj', 'Benpress', 'Lårcurl', 'Vadpress'],
+    },
+    {
+      title: 'Core & rörlighet',
+      focus: 'Stabilitet • Rörlighet',
+      exercises: ['Plankan', 'Hängande benlyft', 'Pallof press', 'Höftlyft'],
+    },
+    {
+      title: 'Snabbt helkropp',
+      focus: '30 min',
+      exercises: ['Goblet squat', 'Armhävningar', 'Skivstångsrodd', 'Utfall'],
     },
   ];
 
@@ -119,6 +141,7 @@ export default function CreateWorkoutScreen({ route, navigation }: Props) {
 
     setName(template.title);
     setSelectedExercises(matched);
+    setIsTemplateModalOpen(false);
 
     if (missing.length > 0) {
       Alert.alert('Saknar övningar', `Lägg till: ${missing.join(', ')}`);
@@ -193,19 +216,10 @@ export default function CreateWorkoutScreen({ route, navigation }: Props) {
         <Text style={styles.header}>Skapa nytt träningspass</Text>
 
         <View style={styles.inputContainer}>
-          <Text style={styles.sectionTitle}>Färdiga pass</Text>
-          <View style={styles.templateGrid}>
-            {templates.map(template => (
-              <View key={template.title} style={styles.templateCard}>
-                <Text style={styles.templateTitle}>{template.title}</Text>
-                <Text style={styles.templateFocus}>{template.focus}</Text>
-                <Text style={styles.templateList}>{template.exercises.join(' • ')}</Text>
-                <Pressable style={styles.templateButton} onPress={() => handleApplyTemplate(template)}>
-                  <Text style={styles.templateButtonText}>Använd</Text>
-                </Pressable>
-              </View>
-            ))}
-          </View>
+          <Text style={styles.templatePrompt}>Vill du ha ett redan färdigt pass?</Text>
+          <Pressable style={styles.templatePromptButton} onPress={() => setIsTemplateModalOpen(true)}>
+            <Text style={styles.templatePromptButtonText}>Visa färdiga pass</Text>
+          </Pressable>
         </View>
 
         <View style={styles.inputContainer}>
@@ -261,6 +275,41 @@ export default function CreateWorkoutScreen({ route, navigation }: Props) {
           </LinearGradient>
         </Pressable>
       </ScrollView>
+      <Modal
+        visible={isTemplateModalOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setIsTemplateModalOpen(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <Pressable style={styles.modalDismiss} onPress={() => setIsTemplateModalOpen(false)} />
+          <View style={[styles.modalCard, { maxHeight: modalMaxHeight }]}
+          >
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Färdiga pass</Text>
+              <Pressable onPress={() => setIsTemplateModalOpen(false)}>
+                <Text style={styles.modalClose}>Stäng</Text>
+              </Pressable>
+            </View>
+            <ScrollView
+              style={[styles.templateScroll, { maxHeight: modalMaxHeight - 80 }]}
+              contentContainerStyle={styles.templateGrid}
+              showsVerticalScrollIndicator={false}
+            >
+              {templates.map(template => (
+                <View key={template.title} style={styles.templateCard}>
+                  <Text style={styles.templateTitle}>{template.title}</Text>
+                  <Text style={styles.templateFocus}>{template.focus}</Text>
+                  <Text style={styles.templateList}>{template.exercises.join(' • ')}</Text>
+                  <Pressable style={styles.templateButton} onPress={() => handleApplyTemplate(template)}>
+                    <Text style={styles.templateButtonText}>Använd</Text>
+                  </Pressable>
+                </View>
+              ))}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -283,14 +332,9 @@ const styles = StyleSheet.create({
   inputContainer: {
     marginTop: 24,
   },
-  sectionTitle: {
-    fontFamily: 'Poppins_400Regular',
-    fontSize: 16,
-    color: '#334155',
-    marginBottom: 10,
-  },
   templateGrid: {
     gap: 12,
+    paddingBottom: 16,
   },
   templateCard: {
     backgroundColor: '#FFFFFF',
@@ -327,6 +371,59 @@ const styles = StyleSheet.create({
   templateButtonText: {
     fontSize: 13,
     color: '#FFFFFF',
+    fontFamily: 'Poppins_400Regular',
+  },
+  templatePrompt: {
+    fontFamily: 'Poppins_400Regular',
+    fontSize: 15,
+    color: '#334155',
+    textAlign: 'center',
+  },
+  templatePromptButton: {
+    marginTop: 12,
+    alignSelf: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 18,
+    borderRadius: 999,
+    backgroundColor: '#14B8A6',
+  },
+  templatePromptButtonText: {
+    fontSize: 14,
+    color: '#FFFFFF',
+    fontFamily: 'Poppins_400Regular',
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.5)',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  modalDismiss: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  modalCard: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 20,
+    padding: 18,
+    width: '100%',
+  },
+  templateScroll: {
+    width: '100%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  modalTitle: {
+    fontSize: 18,
+    color: '#0F172A',
+    fontFamily: 'Poppins_400Regular',
+  },
+  modalClose: {
+    fontSize: 14,
+    color: '#64748B',
     fontFamily: 'Poppins_400Regular',
   },
   label: {
