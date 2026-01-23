@@ -277,7 +277,7 @@ export default function ProgressScreen() {
                     <Text style={styles.progressValue}>{progressSummary.latestWeight} kg</Text>
                   </View>
                   <View style={styles.progressRow}>
-                    <Text style={styles.progressLabel}>Basta</Text>
+                    <Text style={styles.progressLabel}>Bästa</Text>
                     <Text style={styles.progressValue}>{progressSummary.maxWeight} kg</Text>
                   </View>
                   <View style={styles.barTrack}>
