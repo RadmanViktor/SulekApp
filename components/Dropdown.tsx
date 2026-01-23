@@ -48,6 +48,12 @@ export default function Dropdown({
     return items.filter(item => item.data.toLowerCase().includes(query));
   }, [items, searchText]);
 
+  const hasExactMatch = useMemo(() => {
+    const query = searchText.trim().toLowerCase();
+    if (!query) return false;
+    return items.some(item => item.data.trim().toLowerCase() === query);
+  }, [items, searchText]);
+
   function toggleItem(item: string) {
     if (singleSelect) {
       setBoth(selected.includes(item) ? [] : [item]);
@@ -127,12 +133,12 @@ export default function Dropdown({
                 placeholderTextColor="#9ca3af"
               />
             </View>
-            {searchText.trim().length > 0 && filteredItems.length === 0 && onCreateItem ? (
+            {searchText.trim().length > 0 && !hasExactMatch && onCreateItem ? (
               <Pressable style={styles.createRow} onPress={handleCreateItem} disabled={isCreating}>
                 {isCreating ? (
                   <ActivityIndicator color="#0F172A" />
                 ) : (
-                  <Text style={styles.createText}>Lägg till "{searchText.trim()}"</Text>
+                  <Text style={styles.createText}>Lägg till "{searchText.trim()}" i listan av övningar</Text>
                 )}
               </Pressable>
             ) : null}
