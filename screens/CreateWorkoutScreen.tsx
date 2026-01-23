@@ -134,18 +134,24 @@ export default function CreateWorkoutScreen({ route, navigation }: Props) {
 
   const [selectedExercises, setSelectedExercises] = useState<string[]>([]);
 
-  const handleApplyTemplate = (template: typeof templates[number]) => {
+  const handleApplyTemplate = async (template: typeof templates[number]) => {
     const available = new Set(exercises.map(item => item.name));
     const matched = template.exercises.filter(name => available.has(name));
     const missing = template.exercises.filter(name => !available.has(name));
 
     setName(template.title);
-    setSelectedExercises(matched);
     setIsTemplateModalOpen(false);
 
     if (missing.length > 0) {
-      Alert.alert('Saknar övningar', `Lägg till: ${missing.join(', ')}`);
+      const created = await Promise.all(missing.map(name => handleCreateExercise(name)));
+      const createdNames = created
+        .map(item => item?.data)
+        .filter((name): name is string => Boolean(name));
+      setSelectedExercises([...matched, ...createdNames]);
+      return;
     }
+
+    setSelectedExercises(matched);
   };
 
   async function handleSaveWorkout() {
