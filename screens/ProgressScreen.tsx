@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Pressable, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Dropdown from '../components/Dropdown';
 import { useFocusEffect } from '@react-navigation/native';
@@ -7,6 +7,7 @@ type ExerciseItem = { id: number; name: string };
 type ProgressEntry = {
   workoutId: number;
   workoutName: string;
+  workoutDate: string;
   workoutCreated: string;
   setNum: number;
   reps: number;
@@ -24,6 +25,14 @@ export default function ProgressScreen() {
   const [isLoadingProgress, setIsLoadingProgress] = useState(false);
   const [monthlyWorkoutCount, setMonthlyWorkoutCount] = useState(0);
   const [isLoadingMonthly, setIsLoadingMonthly] = useState(false);
+  const [isGraphOpen, setIsGraphOpen] = useState(false);
+  const milestoneEmoji = useMemo(() => {
+    if (monthlyWorkoutCount >= 200) return '👑';
+    if (monthlyWorkoutCount >= 150) return '🏆';
+    if (monthlyWorkoutCount >= 100) return '🔥';
+    if (monthlyWorkoutCount >= 50) return '💪';
+    return '';
+  }, [monthlyWorkoutCount]);
 
   const activeExercise = selectedExercises[0];
   const activeExerciseItem = useMemo(
@@ -42,6 +51,37 @@ export default function ProgressScreen() {
     return { maxWeight, latestWeight, percent };
   }, [progressEntries]);
 
+  const graphData = useMemo(() => {
+    if (progressEntries.length === 0) return [];
+    const map = new Map<string, number>();
+
+    progressEntries.forEach(entry => {
+      const rawDate = entry.workoutDate ?? entry.workoutCreated;
+      const date = new Date(rawDate).toISOString().split('T')[0];
+      const weight = entry.weightKg ?? 0;
+      map.set(date, Math.max(map.get(date) ?? 0, weight));
+    });
+
+    return Array.from(map.entries())
+      .map(([date, weight]) => ({ date, weight }))
+      .sort((a, b) => (a.date > b.date ? 1 : -1));
+  }, [progressEntries]);
+
+  const maxGraphWeight = useMemo(
+    () => Math.max(0, ...graphData.map(entry => entry.weight)),
+    [graphData]
+  );
+
+  const formatSwedishDate = useCallback((value: string) => {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+    return new Intl.DateTimeFormat('sv-SE', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    }).format(date);
+  }, []);
+
   const fetchMonthlyCount = useCallback(async () => {
     setIsLoadingMonthly(true);
     try {
@@ -52,12 +92,13 @@ export default function ProgressScreen() {
       const month = now.getMonth();
       const year = now.getFullYear();
       const count = data
-        .map(item => item.workout?.workoutDate)
-        .filter((workoutDate): workoutDate is string => Boolean(workoutDate))
-        .filter(workoutDate => {
-          const date = new Date(workoutDate);
+        .map(item => item.workout)
+        .filter((workout): workout is { workoutDate?: string; completed?: boolean } => Boolean(workout?.workoutDate))
+        .filter(workout => {
+          const date = new Date(workout.workoutDate!);
           return date.getMonth() === month && date.getFullYear() === year;
-        }).length;
+        })
+        .filter(workout => workout.completed).length;
       setMonthlyWorkoutCount(count);
     } catch (error) {
       setMonthlyWorkoutCount(0);
@@ -146,7 +187,7 @@ export default function ProgressScreen() {
               <ActivityIndicator color="#0F172A" />
             ) : (
               <>
-                <Text style={styles.monthLabel}>Denna månad</Text>
+                <Text style={styles.monthLabel}>Genomförda pass</Text>
                 <Text
                   style={[
                     styles.monthValue,
@@ -154,6 +195,7 @@ export default function ProgressScreen() {
                   ]}
                 >
                   {monthlyWorkoutCount} pass
+                  {milestoneEmoji ? ` ${milestoneEmoji}` : ''}
                 </Text>
               </>
             )}
@@ -193,6 +235,13 @@ export default function ProgressScreen() {
                   <View style={styles.barTrack}>
                     <View style={[styles.barFill, { width: `${progressSummary.percent}%` }]} />
                   </View>
+                  <Pressable
+                    style={styles.graphButton}
+                    onPress={() => setIsGraphOpen(true)}
+                    disabled={progressEntries.length === 0}
+                  >
+                    <Text style={styles.graphButtonText}>Visa graf</Text>
+                  </Pressable>
                 </View>
               ) : null}
               {progressEntries.length === 0 ? (
@@ -201,7 +250,7 @@ export default function ProgressScreen() {
                 progressEntries.map(entry => (
                   <View key={`${activeExercise}-${entry.workoutId}-${entry.setNum}`} style={styles.card}>
                     <Text style={styles.cardDate}>
-                      {new Date(entry.workoutCreated).toISOString().split('T')[0]} • {entry.workoutName}
+                      {formatSwedishDate(entry.workoutDate ?? entry.workoutCreated)} • {entry.workoutName}
                     </Text>
                     <Text style={styles.cardDetail}>
                       {entry.reps} reps • {entry.weightKg ?? 0} kg
@@ -214,6 +263,32 @@ export default function ProgressScreen() {
           )}
         </View>
       </ScrollView>
+      <Modal visible={isGraphOpen} transparent animationType="fade" onRequestClose={() => setIsGraphOpen(false)}>
+        <Pressable style={styles.graphBackdrop} onPress={() => setIsGraphOpen(false)}>
+          <Pressable style={styles.graphModal} onPress={() => null}>
+            <Text style={styles.graphTitle}>{activeExercise} • Progress</Text>
+            {graphData.length === 0 ? (
+              <Text style={styles.helper}>Inga set registrerade ännu.</Text>
+            ) : (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.graphScroll}>
+                {graphData.map(entry => (
+                  <View key={entry.date} style={styles.graphColumn}>
+                    <View style={styles.graphBarTrack}>
+                      <View
+                        style={[
+                          styles.graphBarFill,
+                          { height: maxGraphWeight > 0 ? `${(entry.weight / maxGraphWeight) * 100}%` : '0%' },
+                        ]}
+                      />
+                    </View>
+                    <Text style={styles.graphLabel}>{formatSwedishDate(entry.date)}</Text>
+                  </View>
+                ))}
+              </ScrollView>
+            )}
+          </Pressable>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -311,6 +386,65 @@ const styles = StyleSheet.create({
   barFill: {
     height: '100%',
     backgroundColor: '#14B8A6',
+  },
+  graphButton: {
+    marginTop: 12,
+    alignSelf: 'flex-start',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: '#E2E8F0',
+  },
+  graphButtonText: {
+    color: '#0F172A',
+    fontSize: 12,
+    fontFamily: 'Poppins_400Regular',
+  },
+  graphBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.35)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  graphModal: {
+    width: '100%',
+    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    padding: 16,
+  },
+  graphTitle: {
+    fontSize: 16,
+    color: '#0F172A',
+    fontFamily: 'Poppins_400Regular',
+    marginBottom: 12,
+  },
+  graphScroll: {
+    paddingBottom: 8,
+  },
+  graphColumn: {
+    alignItems: 'center',
+    width: 42,
+    marginRight: 8,
+  },
+  graphBarTrack: {
+    width: 18,
+    height: 90,
+    borderRadius: 10,
+    backgroundColor: '#E2E8F0',
+    overflow: 'hidden',
+    justifyContent: 'flex-end',
+  },
+  graphBarFill: {
+    width: '100%',
+    borderRadius: 10,
+    backgroundColor: '#14B8A6',
+  },
+  graphLabel: {
+    marginTop: 6,
+    fontSize: 10,
+    color: '#64748B',
+    fontFamily: 'Poppins_400Regular',
   },
   card: {
     backgroundColor: '#FFFFFF',

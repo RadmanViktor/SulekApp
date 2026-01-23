@@ -1,5 +1,5 @@
 import { View, Text, Pressable, Modal, FlatList, StyleSheet, TextInput, ActivityIndicator } from "react-native";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { LinearGradient } from "expo-linear-gradient";
 
 export type DropItem = { data: string };
@@ -31,10 +31,18 @@ export default function Dropdown({
   const [selected, setSelected] = useState<string[]>(defaultValue ?? []);
   const [searchText, setSearchText] = useState('');
   const [isCreating, setIsCreating] = useState(false);
+  const searchInputRef = useRef<TextInput | null>(null);
 
   useEffect(() => {
     if (value) setSelected(value);
   }, [value]);
+
+  useEffect(() => {
+    if (!open) return;
+    setSearchText('');
+    const timeout = setTimeout(() => searchInputRef.current?.focus(), 50);
+    return () => clearTimeout(timeout);
+  }, [open]);
 
   const displayText = useMemo(() => {
     if (selected.length === 0) return placeholder;
@@ -126,6 +134,7 @@ export default function Dropdown({
           <View style={styles.dropdown}>
             <View style={styles.searchRow}>
               <TextInput
+                ref={searchInputRef}
                 style={styles.searchInput}
                 placeholder="Sök övning"
                 value={searchText}
