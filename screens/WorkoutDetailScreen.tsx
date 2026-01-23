@@ -76,6 +76,8 @@ export default function WorkoutDetailScreen({ route, navigation }: Props) {
           const dateOnly = toLocalDateString(workout.workoutDate);
           return dateOnly === date;
         });
+        console.log('Matching workouts:', matching);
+        console.log('Date filter:', date);
       setWorkouts(matching);
     } catch (error) {
       setWorkouts([]);

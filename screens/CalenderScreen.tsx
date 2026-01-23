@@ -1,5 +1,5 @@
 import React, { useMemo, useEffect, useState, useCallback } from 'react';
-import { Alert, StyleSheet } from 'react-native';
+import { Alert, StyleSheet, View, Text } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CalendarList } from 'react-native-calendars';
 import '../config/calendarLocale'; 
@@ -15,20 +15,22 @@ export default function CalendarScreen() {
   const insets = useSafeAreaInsets();
   const [workoutDates, setWorkoutDates] = useState<string[]>([]);
   const [workoutByDate, setWorkoutByDate] = useState<Record<string, number>>({});
+  const [workoutStatusByDate, setWorkoutStatusByDate] = useState<Record<string, { total: number; completed: number }>>({});
   const apiBaseUrl = 'http://localhost:5026';
 
   const fetchWorkouts = useCallback(async () => {
     try {
       const response = await fetch(`${apiBaseUrl}/Workout/Workouts`);
       if (!response.ok) return;
-      const data: { workout?: { id?: number; workoutDate?: string } }[] = await response.json();
+      const data: { workout?: { id?: number; workoutDate?: string; completed?: boolean; deleted?: boolean } }[] = await response.json();
 
       const entries = data
         .map(item => item?.workout)
-        .filter((workout): workout is { id: number; workoutDate: string } => Boolean(workout?.id && workout?.workoutDate))
+        .filter((workout): workout is { id: number; workoutDate: string; completed?: boolean; deleted?: boolean } => Boolean(workout?.id && workout?.workoutDate) && !workout?.deleted)
         .map(workout => ({
           id: workout.id,
           date: toLocalDateString(workout.workoutDate),
+          completed: Boolean(workout.completed),
         }));
 
       const dates = entries.map(entry => entry.date);
@@ -36,12 +38,22 @@ export default function CalendarScreen() {
         acc[entry.date] = entry.id;
         return acc;
       }, {});
+      const statusByDate = entries.reduce<Record<string, { total: number; completed: number }>>((acc, entry) => {
+        const current = acc[entry.date] ?? { total: 0, completed: 0 };
+        acc[entry.date] = {
+          total: current.total + 1,
+          completed: current.completed + (entry.completed ? 1 : 0),
+        };
+        return acc;
+      }, {});
 
       setWorkoutDates(Array.from(new Set(dates)));
       setWorkoutByDate(mapByDate);
+      setWorkoutStatusByDate(statusByDate);
     } catch (error) {
       setWorkoutDates([]);
       setWorkoutByDate({});
+      setWorkoutStatusByDate({});
     }
   }, [apiBaseUrl]);
 
@@ -98,10 +110,15 @@ export default function CalendarScreen() {
 
   const markedDates = useMemo(() => {
     return workoutDates.reduce<Record<string, any>>((acc, date) => {
-      acc[date] = { marked: true, dotColor: '#14B8A6' };
+      const status = workoutStatusByDate[date];
+      const isCompleted = status ? status.completed === status.total : false;
+      acc[date] = {
+        marked: true,
+        dotColor: isCompleted ? '#22C55E' : '#14B8A6',
+      };
       return acc;
     }, {});
-  }, [workoutDates]);
+  }, [workoutDates, workoutStatusByDate]);
 
   return (
     <SafeAreaView style={styles.wrapper} edges={['top', 'left', 'right']}>
@@ -113,6 +130,34 @@ export default function CalendarScreen() {
         pastScrollRange={12}
         futureScrollRange={12}
         showScrollIndicator={false}
+        dayComponent={({ date, state }) => {
+          const dateString = date?.dateString;
+          const status = dateString ? workoutStatusByDate[dateString] : undefined;
+          const isCompleted = status ? status.completed === status.total : false;
+          const isWorkout = dateString ? workoutDates.includes(dateString) : false;
+          const isDisabled = state === 'disabled';
+          const isToday = state === 'today';
+
+          return (
+            <View style={styles.dayCell}>
+              <Text
+                style={[
+                  styles.dayText,
+                  isDisabled && styles.dayTextDisabled,
+                  isToday && styles.dayTextToday,
+                ]}
+              >
+                {date?.day}
+              </Text>
+              {isWorkout && !isCompleted ? <View style={styles.dayDot} /> : null}
+              {isCompleted ? (
+                <View style={styles.completedBadge}>
+                  <Text style={styles.completedBadgeText}>✓</Text>
+                </View>
+              ) : null}
+            </View>
+          );
+        }}
         onDayPress={(day) => {
           console.log('Selected day', day);
           if (workoutDates.includes(day.dateString)) {
@@ -147,5 +192,44 @@ const styles = StyleSheet.create({
     alignContent: 'center',
     justifyContent: 'center',
     backgroundColor: '#F3F4F6',
-  }
+  },
+  dayCell: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 32,
+    height: 32,
+  },
+  dayText: {
+    color: '#334155',
+  },
+  dayTextDisabled: {
+    color: '#CBD5F5',
+  },
+  dayTextToday: {
+    color: '#14B8A6',
+    fontWeight: '600',
+  },
+  dayDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 999,
+    backgroundColor: '#14B8A6',
+    marginTop: 2,
+  },
+  completedBadge: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: '#22C55E',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  completedBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '700',
+  },
 });
