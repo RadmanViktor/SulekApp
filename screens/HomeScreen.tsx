@@ -23,26 +23,27 @@ export default function HomeScreen(){
                 try {
                     const response = await fetch(`${apiBaseUrl}/Workout/Workouts`);
                     if (!response.ok) return;
-                    const data: { workout?: { name?: string; workoutDate?: string, completed?: boolean } }[] = await response.json();
+                    const data: { workout?: { id?: number; name?: string; workoutDate?: string; completed?: boolean; deleted?: boolean } }[] = await response.json();
                     const workout = data
                         .map(item => item.workout)
                         .find(item => {
-                            if (!item?.workoutDate) return false;
+                            if (!item?.workoutDate || item?.deleted) return false;
                             const dateOnly = toLocalDateString(item.workoutDate);
                             return dateOnly === todayDate;
                         });
 
                     const upcomingWorkout = data
                         .map(item => item.workout)
-                        .filter(item => item?.workoutDate)
+                        .filter(item => item?.workoutDate && !item?.deleted)
                         .map(item => {
                             const dateOnly = toLocalDateString(item!.workoutDate!);
                             return {
                                 name: item!.name ?? 'Pass',
                                 workoutDate: dateOnly,
+                                completed: item!.completed,
                             };
                         })
-                        .filter(item => item.workoutDate > todayDate)
+                        .filter(item => item.workoutDate > todayDate && !item.completed)
                         .sort((a, b) => (a.workoutDate > b.workoutDate ? 1 : -1))[0] ?? null;
 
                     if (!isActive) return;
@@ -75,7 +76,7 @@ export default function HomeScreen(){
 
         // Dagen pass 
         if(todaysWorkout) {
-            return(<Text style={style.introText}>Idag står det ${todaysWorkout.name} på schemat! 💪</Text>)
+            return(<Text style={style.introText}>Idag står det {todaysWorkout.name} på schemat! 💪</Text>)
         }
 
         // Dagens pass är klart och inget mer inplanerat
