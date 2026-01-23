@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { StyleSheet, View, Text, TextInput, ScrollView, Platform, StatusBar, Pressable, Alert, ActivityIndicator, Modal, Dimensions } from 'react-native';
 import { DropItem } from '../components/Dropdown';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -7,6 +7,7 @@ import Dropdown from '../components/Dropdown';
 import RNDateTimePicker from '@react-native-community/datetimepicker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { RootTabParamList } from '../navigations/types';
+import { useFocusEffect } from '@react-navigation/native';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { toLocalDateString } from '../utils/date';
 
@@ -76,6 +77,15 @@ export default function CreateWorkoutScreen({ route, navigation }: Props) {
   useEffect(() => {
     if (paramDate) setDate(paramDate);
   }, [paramDate]);
+
+  useFocusEffect(
+    useCallback(() => {
+      setName('');
+      setSelectedExercises([]);
+      setIsTemplateModalOpen(false);
+      setDate(paramDate ?? new Date());
+    }, [paramDate])
+  );
 
   useEffect(() => {
     let isMounted = true;
