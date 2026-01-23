@@ -1,5 +1,6 @@
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Pressable, Modal } from 'react-native';
+import Svg, { Polyline, Circle, Text as SvgText } from 'react-native-svg';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Dropdown from '../components/Dropdown';
 import { useFocusEffect } from '@react-navigation/native';
@@ -26,6 +27,7 @@ export default function ProgressScreen() {
   const [monthlyWorkoutCount, setMonthlyWorkoutCount] = useState(0);
   const [isLoadingMonthly, setIsLoadingMonthly] = useState(false);
   const [isGraphOpen, setIsGraphOpen] = useState(false);
+  const [graphMetric, setGraphMetric] = useState<'weight' | 'reps' | 'repsAtMaxWeight'>('weight');
   const milestoneEmoji = useMemo(() => {
     if (monthlyWorkoutCount >= 200) return '👑';
     if (monthlyWorkoutCount >= 150) return '🏆';
@@ -53,24 +55,70 @@ export default function ProgressScreen() {
 
   const graphData = useMemo(() => {
     if (progressEntries.length === 0) return [];
-    const map = new Map<string, number>();
+    const dateMap = new Map<string, ProgressEntry[]>();
 
     progressEntries.forEach(entry => {
       const rawDate = entry.workoutDate ?? entry.workoutCreated;
       const date = new Date(rawDate).toISOString().split('T')[0];
-      const weight = entry.weightKg ?? 0;
-      map.set(date, Math.max(map.get(date) ?? 0, weight));
+      const list = dateMap.get(date) ?? [];
+      list.push(entry);
+      dateMap.set(date, list);
     });
 
-    return Array.from(map.entries())
-      .map(([date, weight]) => ({ date, weight }))
-      .sort((a, b) => (a.date > b.date ? 1 : -1));
-  }, [progressEntries]);
+    const entries = Array.from(dateMap.entries()).map(([date, items]) => {
+      if (graphMetric === 'reps') {
+        const maxReps = Math.max(...items.map(item => item.reps), 0);
+        return { date, value: maxReps };
+      }
+
+      if (graphMetric === 'repsAtMaxWeight') {
+        const maxWeight = Math.max(...items.map(item => item.weightKg ?? 0), 0);
+        const repsAtMaxWeight = Math.max(
+          ...items.filter(item => (item.weightKg ?? 0) === maxWeight).map(item => item.reps),
+          0
+        );
+        return { date, value: repsAtMaxWeight };
+      }
+
+      const maxWeight = Math.max(...items.map(item => item.weightKg ?? 0), 0);
+      return { date, value: maxWeight };
+    });
+
+    return entries.sort((a, b) => (a.date > b.date ? 1 : -1));
+  }, [progressEntries, graphMetric]);
 
   const maxGraphWeight = useMemo(
-    () => Math.max(0, ...graphData.map(entry => entry.weight)),
+    () => Math.max(0, ...graphData.map(entry => entry.value)),
     [graphData]
   );
+
+  const graphLayout = useMemo(() => {
+    const chartHeight = 120;
+    const chartPadding = 10;
+    const chartStep = 56;
+    const safeMax = maxGraphWeight > 0 ? maxGraphWeight : 1;
+
+    const points = graphData.map((entry, index) => {
+      const x = chartPadding + index * chartStep;
+      const y = chartPadding + (chartHeight - chartPadding * 2) * (1 - entry.value / safeMax);
+      return { x, y, date: entry.date };
+    });
+
+    const width = Math.max(260, chartPadding * 2 + chartStep * Math.max(1, graphData.length - 1));
+    return {
+      chartHeight,
+      chartPadding,
+      chartStep,
+      width,
+      points,
+      line: points.map(point => `${point.x},${point.y}`).join(' '),
+    };
+  }, [graphData, maxGraphWeight]);
+
+  const graphUnit = useMemo(() => {
+    if (graphMetric === 'weight') return 'kg';
+    return 'reps';
+  }, [graphMetric]);
 
   const formatSwedishDate = useCallback((value: string) => {
     const date = new Date(value);
@@ -266,24 +314,72 @@ export default function ProgressScreen() {
       <Modal visible={isGraphOpen} transparent animationType="fade" onRequestClose={() => setIsGraphOpen(false)}>
         <Pressable style={styles.graphBackdrop} onPress={() => setIsGraphOpen(false)}>
           <Pressable style={styles.graphModal} onPress={() => null}>
-            <Text style={styles.graphTitle}>{activeExercise} • Progress</Text>
+            <Text style={styles.graphTitle}>{activeExercise} • {graphMetric === 'weight' ? 'Maxvikt' : graphMetric === 'reps' ? 'Max reps' : 'Reps vid maxvikt'}</Text>
+            <View style={styles.graphToggle}>
+              <Pressable
+                style={[styles.graphToggleButton, graphMetric === 'weight' && styles.graphToggleButtonActive]}
+                onPress={() => setGraphMetric('weight')}
+              >
+                <Text style={[styles.graphToggleText, graphMetric === 'weight' && styles.graphToggleTextActive]}>Maxvikt</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.graphToggleButton, graphMetric === 'reps' && styles.graphToggleButtonActive]}
+                onPress={() => setGraphMetric('reps')}
+              >
+                <Text style={[styles.graphToggleText, graphMetric === 'reps' && styles.graphToggleTextActive]}>Max reps</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.graphToggleButton, graphMetric === 'repsAtMaxWeight' && styles.graphToggleButtonActive]}
+                onPress={() => setGraphMetric('repsAtMaxWeight')}
+              >
+                <Text style={[styles.graphToggleText, graphMetric === 'repsAtMaxWeight' && styles.graphToggleTextActive]}>Reps vid max</Text>
+              </Pressable>
+            </View>
             {graphData.length === 0 ? (
               <Text style={styles.helper}>Inga set registrerade ännu.</Text>
             ) : (
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.graphScroll}>
-                {graphData.map(entry => (
-                  <View key={entry.date} style={styles.graphColumn}>
-                    <View style={styles.graphBarTrack}>
-                      <View
-                        style={[
-                          styles.graphBarFill,
-                          { height: maxGraphWeight > 0 ? `${(entry.weight / maxGraphWeight) * 100}%` : '0%' },
-                        ]}
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                <View style={[styles.graphChart, { width: graphLayout.width }]}
+                >
+                  <Svg width={graphLayout.width} height={graphLayout.chartHeight}>
+                    <Polyline
+                      points={graphLayout.line}
+                      fill="none"
+                      stroke="#14B8A6"
+                      strokeWidth="3"
+                    />
+                    {graphLayout.points.map(point => (
+                      <Circle
+                        key={point.date}
+                        cx={point.x}
+                        cy={point.y}
+                        r={4}
+                        fill="#14B8A6"
                       />
-                    </View>
-                    <Text style={styles.graphLabel}>{formatSwedishDate(entry.date)}</Text>
+                    ))}
+                    {graphLayout.points.map((point, index) => (
+                      <SvgText
+                        key={`label-${point.date}`}
+                        x={point.x}
+                        y={Math.max(point.y - 8, 10)}
+                        fontSize="10"
+                        fill="#0F172A"
+                        textAnchor="middle"
+                      >
+                        {Math.round(graphData[index]?.value ?? 0)} {graphUnit}
+                      </SvgText>
+                    ))}
+                  </Svg>
+                  <View style={[styles.graphLabelRow, { width: graphLayout.width }]}
+                  >
+                    {graphLayout.points.map(point => (
+                      <Text key={point.date} style={[styles.graphLabel, { width: graphLayout.chartStep }]}
+                      >
+                        {formatSwedishDate(point.date)}
+                      </Text>
+                    ))}
                   </View>
-                ))}
+                </View>
               </ScrollView>
             )}
           </Pressable>
@@ -400,6 +496,13 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: 'Poppins_400Regular',
   },
+  graphChart: {
+    paddingTop: 8,
+  },
+  graphLabelRow: {
+    flexDirection: 'row',
+    marginTop: 8,
+  },
   graphBackdrop: {
     flex: 1,
     backgroundColor: 'rgba(15, 23, 42, 0.35)',
@@ -419,32 +522,37 @@ const styles = StyleSheet.create({
     fontFamily: 'Poppins_400Regular',
     marginBottom: 12,
   },
-  graphScroll: {
-    paddingBottom: 8,
+  graphToggle: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 12,
   },
-  graphColumn: {
-    alignItems: 'center',
-    width: 42,
-    marginRight: 8,
+  graphToggleButton: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#CBD5F5',
+    backgroundColor: '#FFFFFF',
   },
-  graphBarTrack: {
-    width: 18,
-    height: 90,
-    borderRadius: 10,
-    backgroundColor: '#E2E8F0',
-    overflow: 'hidden',
-    justifyContent: 'flex-end',
-  },
-  graphBarFill: {
-    width: '100%',
-    borderRadius: 10,
+  graphToggleButtonActive: {
     backgroundColor: '#14B8A6',
+    borderColor: '#14B8A6',
+  },
+  graphToggleText: {
+    fontSize: 12,
+    color: '#0F172A',
+    fontFamily: 'Poppins_400Regular',
+  },
+  graphToggleTextActive: {
+    color: '#FFFFFF',
   },
   graphLabel: {
-    marginTop: 6,
     fontSize: 10,
     color: '#64748B',
     fontFamily: 'Poppins_400Regular',
+    textAlign: 'center',
   },
   card: {
     backgroundColor: '#FFFFFF',
