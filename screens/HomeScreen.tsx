@@ -75,7 +75,7 @@ export default function HomeScreen(){
         }
 
         // Dagen pass 
-        if(todaysWorkout) {
+        if(todaysWorkout && !todaysWorkout.completed) {
             return(<Text style={style.introText}>Idag står det {todaysWorkout.name} på schemat! 💪</Text>)
         }
 
@@ -85,7 +85,7 @@ export default function HomeScreen(){
         }
 
         // Inget pass idag men ett pass i framtiden finns 
-        if(!todaysWorkout && nextWorkout) {
+        if((!todaysWorkout || todaysWorkout.completed) && nextWorkout) {
             return(<Text style={style.introText}>Ditt nästa inplanerade träningspass är {nextWorkout.name} ({nextWorkout.workoutDate})</Text>)
         }
     };
@@ -96,7 +96,7 @@ export default function HomeScreen(){
             <View>
                 {intoText()}
             </View>
-            {todaysWorkout ? (
+            {todaysWorkout && !todaysWorkout.completed ? (
                 <Pressable
                     style={style.quickButton}
                     onPress={() => navigation.navigate('WorkoutDetailScreen', { date: todayDate })}

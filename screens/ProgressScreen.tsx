@@ -226,7 +226,7 @@ export default function ProgressScreen() {
 
   return (
     <SafeAreaView style={styles.wrapper} edges={['top', 'left', 'right']}>
-      <Text style={styles.title}>Progress</Text>
+      <Text style={styles.title}>Din träningsresa</Text>
 
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.section}>
