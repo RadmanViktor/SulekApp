@@ -1,5 +1,5 @@
 import React, { useMemo, useEffect, useState, useCallback } from 'react';
-import { Alert, StyleSheet, View, Text } from 'react-native';
+import { Alert, StyleSheet, View, Text, Pressable } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CalendarList } from 'react-native-calendars';
 import '../config/calendarLocale'; 
@@ -120,6 +120,26 @@ export default function CalendarScreen() {
     }, {});
   }, [workoutDates, workoutStatusByDate]);
 
+  const handleDayPress = useCallback(
+    (dateString: string) => {
+      if (workoutDates.includes(dateString)) {
+        navigation.navigate('WorkoutDetailScreen', { date: dateString });
+        return;
+      }
+      navigation.navigate('CreateWorkoutScreen', { date: dateString });
+    },
+    [navigation, workoutDates]
+  );
+
+  const handleDayLongPress = useCallback(
+    (dateString: string) => {
+      if (workoutDates.includes(dateString)) {
+        handleDeleteWorkout(dateString);
+      }
+    },
+    [handleDeleteWorkout, workoutDates]
+  );
+
   return (
     <SafeAreaView style={styles.wrapper} edges={['top', 'left', 'right']}>
       <CalendarList
@@ -139,7 +159,12 @@ export default function CalendarScreen() {
           const isToday = state === 'today';
 
           return (
-            <View style={styles.dayCell}>
+            <Pressable
+              style={styles.dayCell}
+              onPress={() => dateString && handleDayPress(dateString)}
+              onLongPress={() => dateString && handleDayLongPress(dateString)}
+              disabled={!dateString}
+            >
               <Text
                 style={[
                   styles.dayText,
@@ -155,21 +180,8 @@ export default function CalendarScreen() {
                   <Text style={styles.completedBadgeText}>✓</Text>
                 </View>
               ) : null}
-            </View>
+            </Pressable>
           );
-        }}
-        onDayPress={(day) => {
-          console.log('Selected day', day);
-          if (workoutDates.includes(day.dateString)) {
-            navigation.navigate('WorkoutDetailScreen', { date: day.dateString });
-            return;
-          }
-          navigation.navigate('CreateWorkoutScreen', { date: day.dateString });
-        }}
-        onDayLongPress={(day) => {
-          if (workoutDates.includes(day.dateString)) {
-            handleDeleteWorkout(day.dateString);
-          }
         }}
         theme={{
           backgroundColor: '#F3F4F6',
