@@ -73,7 +73,7 @@ export default function WorkoutDetailScreen({ route, navigation }: Props) {
         .map(item => item.workout)
         .filter(workout => {
           if (!workout.workoutDate) return false;
-          const dateOnly = toLocalDateString(new Date(workout.workoutDate));
+          const dateOnly = toLocalDateString(workout.workoutDate);
           return dateOnly === date;
         });
       setWorkouts(matching);

@@ -169,8 +169,7 @@ export default function CreateWorkoutScreen({ route, navigation }: Props) {
           .map(item => item.workout)
           .some(workout => {
             if (!workout?.workoutDate) return false;
-            const workoutDateValue = new Date(workout.workoutDate);
-            const workoutDate = toLocalDateString(workoutDateValue);
+            const workoutDate = toLocalDateString(workout.workoutDate);
             return workoutDate === selectedDate;
           });
 

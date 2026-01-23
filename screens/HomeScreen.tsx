@@ -15,10 +15,6 @@ export default function HomeScreen(){
     const apiBaseUrl = 'http://localhost:5026';
     const todayDate = toLocalDateString(new Date());
 
-    // TODO!
-    // Hämta data om dagens pass här
-    // Kunna starta pass direkt från hemskärmen
-
     useFocusEffect(
         useCallback(() => {
             let isActive = true;
@@ -32,7 +28,7 @@ export default function HomeScreen(){
                         .map(item => item.workout)
                         .find(item => {
                             if (!item?.workoutDate) return false;
-                            const dateOnly = toLocalDateString(new Date(item.workoutDate));
+                            const dateOnly = toLocalDateString(item.workoutDate);
                             return dateOnly === todayDate;
                         });
 
@@ -40,7 +36,7 @@ export default function HomeScreen(){
                         .map(item => item.workout)
                         .filter(item => item?.workoutDate)
                         .map(item => {
-                            const dateOnly = toLocalDateString(new Date(item!.workoutDate!));
+                            const dateOnly = toLocalDateString(item!.workoutDate!);
                             return {
                                 name: item!.name ?? 'Pass',
                                 workoutDate: dateOnly,
@@ -70,13 +66,16 @@ export default function HomeScreen(){
             };
         }, [apiBaseUrl, todayDate])
     );
+    const isCompletedWithNoNext = todaysWorkout?.completed && !nextWorkout;
     let intoText = () => {
         return (
             <Text style={style.introText}>{todaysWorkout != null ? 
                 todaysWorkout.completed
-                    ? `Starkt jobbat idag! Nästa inplanerade träningspass är ${nextWorkout?.name ?? 'inte planerat'}${nextWorkout ? ` (${nextWorkout.workoutDate})` : ''}`
+                    ? nextWorkout
+                        ? `Starkt jobbat idag! Nästa inplanerade träningspass är ${nextWorkout.name} (${nextWorkout.workoutDate})`
+                        : 'Starkt jobbat! Du har inget mer pass inplanerat. Vill du skapa ett?'
                     : `Idag står det ${todaysWorkout.name} på schemat! 💪`
-                : "Inget pass registrerat idag. Vill du skapa ett direkt?" }</Text>
+                : "Du har inget pass registrerat. Vill du skapa ett direkt?" }</Text>
         );
     };
     return(
@@ -85,7 +84,7 @@ export default function HomeScreen(){
             <View>
                 {intoText()}
             </View>
-            {todaysWorkout ? (
+            {todaysWorkout && !isCompletedWithNoNext ? (
                 <Pressable
                     style={style.quickButton}
                     onPress={() => navigation.navigate('WorkoutDetailScreen', { date: todaysWorkout.workoutDate.split('T')[0] })}

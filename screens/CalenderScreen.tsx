@@ -28,7 +28,7 @@ export default function CalendarScreen() {
         .filter((workout): workout is { id: number; workoutDate: string } => Boolean(workout?.id && workout?.workoutDate))
         .map(workout => ({
           id: workout.id,
-          date: toLocalDateString(new Date(workout.workoutDate)),
+          date: toLocalDateString(workout.workoutDate),
         }));
 
       const dates = entries.map(entry => entry.date);
