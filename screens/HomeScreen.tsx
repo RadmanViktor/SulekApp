@@ -68,37 +68,48 @@ export default function HomeScreen(){
     );
     const isCompletedWithNoNext = todaysWorkout?.completed && !nextWorkout;
     let intoText = () => {
-        return (
-            <Text style={style.introText}>{todaysWorkout != null ? 
-                todaysWorkout.completed
-                    ? nextWorkout
-                        ? `Starkt jobbat idag! Nästa inplanerade träningspass är ${nextWorkout.name} (${nextWorkout.workoutDate})`
-                        : 'Starkt jobbat! Du har inget mer pass inplanerat. Vill du skapa ett?'
-                    : `Idag står det ${todaysWorkout.name} på schemat! 💪`
-                : "Du har inget pass registrerat. Vill du skapa ett direkt?" }</Text>
-        );
+        // Inga pass registrerade
+        if(!todaysWorkout && !nextWorkout) {
+            return(<Text style={style.introText}>Du har inget pass registrerat. Vill du skapa ett direkt?</Text>)
+        }
+
+        // Dagen pass 
+        if(todaysWorkout) {
+            return(<Text style={style.introText}>Idag står det ${todaysWorkout.name} på schemat! 💪</Text>)
+        }
+
+        // Dagens pass är klart och inget mer inplanerat
+        if(isCompletedWithNoNext) {
+            return(<Text style={style.introText}>Dagens pass är avklarat! Inga fler pass inplanerade. Vill du skapa ett nytt pass?</Text>)
+        }
+
+        // Inget pass idag men ett pass i framtiden finns 
+        if(!todaysWorkout && nextWorkout) {
+            return(<Text style={style.introText}>Ditt nästa inplanerade träningspass är {nextWorkout.name} ({nextWorkout.workoutDate})</Text>)
+        }
     };
+
     return(
         <View style={style.wrapper}>
             <ProfileButton onPress={() => navigation.navigate('ProfileScreen')} />
             <View>
                 {intoText()}
             </View>
-            {todaysWorkout && !isCompletedWithNoNext ? (
+            {todaysWorkout ? (
                 <Pressable
                     style={style.quickButton}
-                    onPress={() => navigation.navigate('WorkoutDetailScreen', { date: todaysWorkout.workoutDate.split('T')[0] })}
+                    onPress={() => navigation.navigate('WorkoutDetailScreen', { date: todayDate })}
                 >
                     <Text style={style.quickButtonText}>Visa pass</Text>
                 </Pressable>
-            ) : (
+            ) : !nextWorkout ? (
                 <Pressable
                     style={style.quickButtonSecondary}
                     onPress={() => navigation.navigate('CreateWorkoutScreen', { date: todayDate })}
                 >
                     <Text style={style.quickButtonSecondaryText}>Skapa pass</Text>
                 </Pressable>
-            )}
+            ) : null}
         </View>
     );
 }
