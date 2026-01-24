@@ -20,6 +20,7 @@ export default function CreateWorkoutScreen({ route, navigation }: Props) {
   const [exercises, setExercises] = useState<{ id: number; name: string }[]>([]);
   const [isLoadingExercises, setIsLoadingExercises] = useState(false);
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
+  const [isCardioOnly, setIsCardioOnly] = useState(false);
   const modalMaxHeight = Math.round(Dimensions.get('window').height * 0.7);
   const templates = [
     {
@@ -84,6 +85,7 @@ export default function CreateWorkoutScreen({ route, navigation }: Props) {
       setSelectedExercises([]);
       setIsTemplateModalOpen(false);
       setDate(paramDate ?? new Date());
+      setIsCardioOnly(false);
     }, [paramDate])
   );
 
@@ -143,6 +145,19 @@ export default function CreateWorkoutScreen({ route, navigation }: Props) {
   };
 
   const [selectedExercises, setSelectedExercises] = useState<string[]>([]);
+  const isSaveDisabled =
+    !name.trim() ||
+    isSaving ||
+    isLoadingExercises ||
+    (!isCardioOnly && selectedExercises.length === 0);
+
+  const handleWorkoutTypeChange = (cardioOnly: boolean) => {
+    setIsCardioOnly(cardioOnly);
+    if (cardioOnly) {
+      setSelectedExercises([]);
+      setIsTemplateModalOpen(false);
+    }
+  };
 
   const handleApplyTemplate = async (template: typeof templates[number]) => {
     const available = new Set(exercises.map(item => item.name));
@@ -231,11 +246,31 @@ export default function CreateWorkoutScreen({ route, navigation }: Props) {
         <Text style={styles.header}>Skapa nytt träningspass</Text>
 
         <View style={styles.inputContainer}>
-          <Text style={styles.templatePrompt}>Vill du ha ett redan färdigt pass?</Text>
-          <Pressable style={styles.templatePromptButton} onPress={() => setIsTemplateModalOpen(true)}>
-            <Text style={styles.templatePromptButtonText}>Visa färdiga pass</Text>
-          </Pressable>
+          <Text style={styles.label}>Pass-typ</Text>
+          <View style={styles.toggleRow}>
+            <Pressable
+              style={[styles.toggleButton, !isCardioOnly && styles.toggleButtonActive]}
+              onPress={() => handleWorkoutTypeChange(false)}
+            >
+              <Text style={[styles.toggleButtonText, !isCardioOnly && styles.toggleButtonTextActive]}>Styrka</Text>
+            </Pressable>
+            <Pressable
+              style={[styles.toggleButton, isCardioOnly && styles.toggleButtonActive]}
+              onPress={() => handleWorkoutTypeChange(true)}
+            >
+              <Text style={[styles.toggleButtonText, isCardioOnly && styles.toggleButtonTextActive]}>Cardio</Text>
+            </Pressable>
+          </View>
         </View>
+
+        {!isCardioOnly ? (
+          <View style={styles.inputContainer}>
+            <Text style={styles.templatePrompt}>Vill du ha ett redan färdigt styrkepass?</Text>
+            <Pressable style={styles.templatePromptButton} onPress={() => setIsTemplateModalOpen(true)}>
+              <Text style={styles.templatePromptButtonText}>Visa färdiga pass</Text>
+            </Pressable>
+          </View>
+        ) : null}
 
         <View style={styles.inputContainer}>
           <Text style={styles.label}>Passnamn</Text>
@@ -248,16 +283,18 @@ export default function CreateWorkoutScreen({ route, navigation }: Props) {
           />
         </View>
 
-        <View style={styles.inputContainer}>
-          <Dropdown
-            label="Övningar"
-            placeholder={isLoadingExercises ? "Hämtar övningar..." : "Välj övningar"}
-            items={exercises.map(exercise => ({ data: exercise.name }))}
-            value={selectedExercises}
-            onCreateItem={handleCreateExercise}
-            onChange={setSelectedExercises}        // få uppdateringar
-          />
-        </View>
+        {!isCardioOnly ? (
+          <View style={styles.inputContainer}>
+            <Dropdown
+              label="Övningar"
+              placeholder={isLoadingExercises ? "Hämtar övningar..." : "Välj övningar"}
+              items={exercises.map(exercise => ({ data: exercise.name }))}
+              value={selectedExercises}
+              onCreateItem={handleCreateExercise}
+              onChange={setSelectedExercises}
+            />
+          </View>
+        ) : null}
         <View style={styles.inputContainer}>
           <Text style={styles.label}>Välj datum för när du vill registrera passet</Text>
           <RNDateTimePicker locale="sv-SE"
@@ -270,18 +307,18 @@ export default function CreateWorkoutScreen({ route, navigation }: Props) {
 
         <Pressable
           onPress={handleSaveWorkout}
-          disabled={!name.trim() || selectedExercises.length === 0 || isSaving || isLoadingExercises}
+          disabled={isSaveDisabled}
           style={{ marginTop: 32 }}
         >
           <LinearGradient
             colors={['#14B8A6', '#0D9488']} // teal gradient
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
-            style={[
-              styles.button,
-              (selectedExercises.length === 0 || name == '' || isSaving || isLoadingExercises) && styles.buttonDisabled,
-            ]}
-          >
+              style={[
+                styles.button,
+                isSaveDisabled && styles.buttonDisabled,
+              ]}
+            >
             {isSaving ? (
               <ActivityIndicator color="#fff" />
             ) : (
@@ -346,6 +383,29 @@ const styles = StyleSheet.create({
   },
   inputContainer: {
     marginTop: 24,
+  },
+  toggleRow: {
+    flexDirection: 'row',
+    backgroundColor: '#E2E8F0',
+    borderRadius: 999,
+    padding: 4,
+  },
+  toggleButton: {
+    flex: 1,
+    paddingVertical: 8,
+    alignItems: 'center',
+    borderRadius: 999,
+  },
+  toggleButtonActive: {
+    backgroundColor: '#14B8A6',
+  },
+  toggleButtonText: {
+    fontSize: 14,
+    color: '#64748B',
+    fontFamily: 'Poppins_400Regular',
+  },
+  toggleButtonTextActive: {
+    color: '#FFFFFF',
   },
   templateGrid: {
     gap: 12,

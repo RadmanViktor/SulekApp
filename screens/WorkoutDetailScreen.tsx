@@ -29,6 +29,9 @@ type WorkoutDto = {
   workoutDate?: string;
   notes?: string | null;
   completed?: boolean;
+  cardioTimeMinutes?: number | null;
+  cardioDistanceKm?: number | null;
+  cardioCalories?: number | null;
   exercises?: ExerciseDto[];
 };
 
@@ -44,6 +47,15 @@ type SetDraft = {
   isSaving?: boolean;
 };
 
+type CardioDraft = {
+  timeMinutes: string;
+  distanceKm: string;
+  calories: string;
+  isSaving?: boolean;
+  elapsedSeconds?: number;
+  isRunning?: boolean;
+};
+
 const apiBaseUrl = 'http://localhost:5026';
 
 export default function WorkoutDetailScreen({ route, navigation }: Props) {
@@ -51,9 +63,11 @@ export default function WorkoutDetailScreen({ route, navigation }: Props) {
   const [isLoading, setIsLoading] = useState(false);
   const [setDrafts, setSetDrafts] = useState<Record<string, SetDraft>>({});
   const [completingWorkouts, setCompletingWorkouts] = useState<Record<number, boolean>>({});
+  const [cardioDrafts, setCardioDrafts] = useState<Record<number, CardioDraft>>({});
   const [confettiKey, setConfettiKey] = useState(0);
   const [showConfetti, setShowConfetti] = useState(false);
   const repsInputRefs = useRef<Record<string, TextInput | null>>({});
+  const cardioIntervals = useRef<Record<number, ReturnType<typeof setInterval> | null>>({});
   const date = route.params.date;
   const screenWidth = Dimensions.get('window').width;
 
@@ -129,6 +143,67 @@ export default function WorkoutDetailScreen({ route, navigation }: Props) {
     });
   }, [workouts]);
 
+  useEffect(() => {
+    if (workouts.length === 0) return;
+    setCardioDrafts(prev => {
+      let next = prev;
+      let updated = false;
+
+      workouts.forEach(workout => {
+        if (!workout.id) return;
+        const current = next[workout.id];
+        if (current) return;
+
+        next = {
+          ...next,
+          [workout.id]: {
+            timeMinutes: workout.cardioTimeMinutes != null ? String(workout.cardioTimeMinutes) : '',
+            distanceKm: workout.cardioDistanceKm != null ? String(workout.cardioDistanceKm) : '',
+            calories: workout.cardioCalories != null ? String(workout.cardioCalories) : '',
+            isSaving: false,
+            elapsedSeconds: 0,
+            isRunning: false,
+          },
+        };
+        updated = true;
+      });
+
+      return updated ? next : prev;
+    });
+  }, [workouts]);
+
+  useEffect(() => {
+    Object.entries(cardioDrafts).forEach(([id, draft]) => {
+      const workoutId = Number(id);
+      if (draft?.isRunning) {
+        if (cardioIntervals.current[workoutId]) return;
+        cardioIntervals.current[workoutId] = setInterval(() => {
+          setCardioDrafts(prev => {
+            const current = prev[workoutId];
+            if (!current?.isRunning) return prev;
+            return {
+              ...prev,
+              [workoutId]: {
+                ...current,
+                elapsedSeconds: (current.elapsedSeconds ?? 0) + 1,
+              },
+            };
+          });
+        }, 1000);
+      } else if (cardioIntervals.current[workoutId]) {
+        clearInterval(cardioIntervals.current[workoutId]!);
+        cardioIntervals.current[workoutId] = null;
+      }
+    });
+
+    return () => {
+      Object.values(cardioIntervals.current).forEach(interval => {
+        if (interval) clearInterval(interval);
+      });
+      cardioIntervals.current = {};
+    };
+  }, [cardioDrafts]);
+
   const handleDraftChange = (key: string, next: Partial<SetDraft>) => {
     setSetDrafts(prev => ({
       ...prev,
@@ -140,6 +215,105 @@ export default function WorkoutDetailScreen({ route, navigation }: Props) {
         ...next,
       },
     }));
+  };
+
+  const handleCardioDraftChange = (workoutId: number, next: Partial<CardioDraft>) => {
+    setCardioDrafts(prev => ({
+      ...prev,
+      [workoutId]: {
+        timeMinutes: prev[workoutId]?.timeMinutes ?? '',
+        distanceKm: prev[workoutId]?.distanceKm ?? '',
+        calories: prev[workoutId]?.calories ?? '',
+        isSaving: prev[workoutId]?.isSaving ?? false,
+        elapsedSeconds: prev[workoutId]?.elapsedSeconds ?? 0,
+        isRunning: prev[workoutId]?.isRunning ?? false,
+        ...next,
+      },
+    }));
+  };
+
+  const startCardioTimer = (workoutId: number) => {
+    handleCardioDraftChange(workoutId, { isRunning: true });
+  };
+
+  const pauseCardioTimer = (workoutId: number) => {
+    handleCardioDraftChange(workoutId, { isRunning: false });
+  };
+
+  const stopCardioTimer = (workoutId: number) => {
+    setCardioDrafts(prev => {
+      const current = prev[workoutId];
+      if (!current) return prev;
+      const elapsedSeconds = current.elapsedSeconds ?? 0;
+      const minutes = elapsedSeconds > 0 ? (elapsedSeconds / 60).toFixed(2) : '';
+      return {
+        ...prev,
+        [workoutId]: {
+          ...current,
+          timeMinutes: minutes,
+          elapsedSeconds: 0,
+          isRunning: false,
+        },
+      };
+    });
+  };
+
+  const formatElapsed = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+  };
+
+  const parseOptionalNumber = (value: string, label: string, integer = false) => {
+    if (!value.trim()) return null;
+    const normalized = integer ? value.trim() : value.replace(',', '.');
+    const parsed = Number(normalized);
+    if (!Number.isFinite(parsed) || parsed < 0) {
+      Alert.alert('Fel värde', `${label} måste vara ett positivt tal.`);
+      return undefined;
+    }
+    if (integer && !Number.isInteger(parsed)) {
+      Alert.alert('Fel värde', `${label} måste vara ett heltal.`);
+      return undefined;
+    }
+    return parsed;
+  };
+
+  const submitCardio = async (workoutId: number) => {
+    const draft = cardioDrafts[workoutId];
+    if (!draft) return;
+
+    const timeMinutes = parseOptionalNumber(draft.timeMinutes, 'Tid');
+    if (timeMinutes === undefined) return;
+    const distanceKm = parseOptionalNumber(draft.distanceKm, 'Kilometer');
+    if (distanceKm === undefined) return;
+    const calories = parseOptionalNumber(draft.calories, 'Kalorier', true);
+    if (calories === undefined) return;
+
+    handleCardioDraftChange(workoutId, { isSaving: true });
+    try {
+      const response = await fetch(`${apiBaseUrl}/Workout/Workouts/${workoutId}/Cardio`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          cardioTimeMinutes: timeMinutes,
+          cardioDistanceKm: distanceKm,
+          cardioCalories: calories,
+        }),
+      });
+
+      if (!response.ok) {
+        const message = await response.text();
+        Alert.alert('Kunde inte spara cardio', message || 'Något gick fel.');
+        return;
+      }
+
+      await loadWorkouts();
+    } catch (error) {
+      Alert.alert('Kunde inte spara cardio', 'Kontrollera att API:t är igång.');
+    } finally {
+      handleCardioDraftChange(workoutId, { isSaving: false });
+    }
   };
 
   const submitSet = async (exercise: ExerciseDto, workoutId?: number) => {
@@ -268,10 +442,104 @@ export default function WorkoutDetailScreen({ route, navigation }: Props) {
           workouts.map(workout => {
             const workoutId = workout.id;
             const isCompleting = workoutId ? completingWorkouts[workoutId] : false;
+            const cardioDraft = workoutId ? cardioDrafts[workoutId] : undefined;
 
             return (
             <View key={`${workout.name}-${workout.workoutDate}`} style={styles.workoutCard}>
               {workout.notes ? <Text style={styles.workoutNotes}>{workout.notes}</Text> : null}
+              {workoutId ? (
+                <View style={styles.cardioCard}>
+                  <View style={styles.cardioHeader}>
+                    <Text style={styles.cardioTitle}>Cardio</Text>
+                    {(workout.cardioTimeMinutes != null || workout.cardioDistanceKm != null || workout.cardioCalories != null) ? (
+                      <View style={styles.cardioSummary}>
+                        {workout.cardioTimeMinutes != null ? (
+                          <Text style={styles.cardioSummaryText}>{workout.cardioTimeMinutes} min</Text>
+                        ) : null}
+                        {workout.cardioDistanceKm != null ? (
+                          <Text style={styles.cardioSummaryText}>{workout.cardioDistanceKm} km</Text>
+                        ) : null}
+                        {workout.cardioCalories != null ? (
+                          <Text style={styles.cardioSummaryText}>{workout.cardioCalories} kcal</Text>
+                        ) : null}
+                      </View>
+                    ) : null}
+                  </View>
+                  <View style={styles.timerRow}>
+                    <Text style={styles.timerValue}>
+                      {formatElapsed(cardioDraft?.elapsedSeconds ?? 0)}
+                    </Text>
+                    <View style={styles.timerActions}>
+                      <Pressable
+                        style={[styles.timerButton, cardioDraft?.isRunning && styles.timerButtonActive]}
+                        onPress={() => startCardioTimer(workoutId)}
+                        disabled={cardioDraft?.isRunning}
+                      >
+                        <Text style={[styles.timerButtonText, cardioDraft?.isRunning && styles.timerButtonTextActive]}>Starta</Text>
+                      </Pressable>
+                      <Pressable
+                        style={[styles.timerButton, styles.timerButtonMuted]}
+                        onPress={() => pauseCardioTimer(workoutId)}
+                        disabled={!cardioDraft?.isRunning}
+                      >
+                        <Text style={styles.timerButtonText}>Pausa</Text>
+                      </Pressable>
+                      <Pressable
+                        style={[styles.timerButton, styles.timerButtonStop]}
+                        onPress={() => stopCardioTimer(workoutId)}
+                      >
+                        <Text style={[styles.timerButtonText, styles.timerButtonTextActive]}>Stoppa</Text>
+                      </Pressable>
+                    </View>
+                  </View>
+                  <View style={styles.cardioInputRow}>
+                    <View style={styles.cardioField}>
+                      <TextInput
+                        style={styles.cardioInput}
+                        placeholder="Tid"
+                        keyboardType="decimal-pad"
+                        value={cardioDraft?.timeMinutes ?? ''}
+                        onChangeText={value => handleCardioDraftChange(workoutId, { timeMinutes: value })}
+                        placeholderTextColor="#9ca3af"
+                      />
+                      <Text style={styles.cardioSuffix}>min</Text>
+                    </View>
+                    <View style={styles.cardioField}>
+                      <TextInput
+                        style={styles.cardioInput}
+                        placeholder="Km"
+                        keyboardType="decimal-pad"
+                        value={cardioDraft?.distanceKm ?? ''}
+                        onChangeText={value => handleCardioDraftChange(workoutId, { distanceKm: value })}
+                        placeholderTextColor="#9ca3af"
+                      />
+                      <Text style={styles.cardioSuffix}>km</Text>
+                    </View>
+                    <View style={styles.cardioField}>
+                      <TextInput
+                        style={styles.cardioInput}
+                        placeholder="Kcal"
+                        keyboardType="number-pad"
+                        value={cardioDraft?.calories ?? ''}
+                        onChangeText={value => handleCardioDraftChange(workoutId, { calories: value })}
+                        placeholderTextColor="#9ca3af"
+                      />
+                      <Text style={styles.cardioSuffix}>kcal</Text>
+                    </View>
+                  </View>
+                  <Pressable
+                    style={[styles.cardioSaveButton, cardioDraft?.isSaving && styles.cardioSaveButtonDisabled]}
+                    onPress={() => submitCardio(workoutId)}
+                    disabled={cardioDraft?.isSaving}
+                  >
+                    {cardioDraft?.isSaving ? (
+                      <ActivityIndicator color="#fff" />
+                    ) : (
+                      <Text style={styles.cardioSaveButtonText}>Spara cardio</Text>
+                    )}
+                  </Pressable>
+                </View>
+              ) : null}
 
               {(workout.exercises ?? []).map(exercise => {
                 const key = `${workout.id ?? workout.name}-${exercise.workoutExerciseId ?? exercise.name}`;
@@ -432,6 +700,140 @@ const styles = StyleSheet.create({
     marginTop: 6,
     fontSize: 14,
     color: '#64748B',
+    fontFamily: 'Poppins_400Regular',
+  },
+  cardioCard: {
+    marginTop: 14,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    backgroundColor: '#F0FDF4',
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
+  },
+  cardioHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  cardioTitle: {
+    fontSize: 14,
+    color: '#0F172A',
+    fontFamily: 'Poppins_400Regular',
+  },
+  cardioSummary: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  cardioSummaryText: {
+    fontSize: 12,
+    color: '#64748B',
+    fontFamily: 'Poppins_400Regular',
+  },
+  cardioInputRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  cardioField: {
+    flex: 1,
+    position: 'relative',
+  },
+  cardioInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+    fontSize: 13,
+    backgroundColor: '#F8FAFC',
+    fontFamily: 'Poppins_400Regular',
+    color: '#111827',
+    paddingRight: 36,
+    height: 44,
+  },
+  cardioSuffix: {
+    position: 'absolute',
+    right: 10,
+    top: 0,
+    bottom: 0,
+    height: 44,
+    lineHeight: 44,
+    fontSize: 12,
+    color: '#64748B',
+    fontFamily: 'Poppins_400Regular',
+  },
+  cardioSaveButton: {
+    marginTop: 10,
+    backgroundColor: '#0D9488',
+    borderRadius: 10,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  cardioSaveButtonDisabled: {
+    opacity: 0.7,
+  },
+  cardioSaveButtonText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontFamily: 'Poppins_400Regular',
+  },
+  timerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  timerValue: {
+    fontSize: 18,
+    color: '#0F172A',
+    fontFamily: 'Poppins_400Regular',
+  },
+  timerActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  timerButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 999,
+    backgroundColor: '#E2E8F0',
+  },
+  timerButtonMuted: {
+    backgroundColor: '#CBD5F5',
+  },
+  timerButtonStop: {
+    backgroundColor: '#0D9488',
+  },
+  timerButtonActive: {
+    backgroundColor: '#14B8A6',
+  },
+  timerButtonText: {
+    fontSize: 12,
+    color: '#0F172A',
+    fontFamily: 'Poppins_400Regular',
+  },
+  timerButtonTextActive: {
+    color: '#FFFFFF',
+  },
+  cardioRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  cardioStat: {
+    minWidth: 90,
+  },
+  cardioLabel: {
+    fontSize: 12,
+    color: '#64748B',
+    fontFamily: 'Poppins_400Regular',
+  },
+  cardioValue: {
+    marginTop: 2,
+    fontSize: 14,
+    color: '#0F172A',
     fontFamily: 'Poppins_400Regular',
   },
   exerciseCard: {
