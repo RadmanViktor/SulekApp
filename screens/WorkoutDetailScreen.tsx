@@ -6,6 +6,7 @@ import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { RootTabParamList } from '../navigations/types';
 import { toLocalDateString } from '../utils/date';
 import ConfettiCannon from 'react-native-confetti-cannon';
+import { Ionicons } from '@expo/vector-icons';
 import MapView, { Polyline } from 'react-native-maps';
 import * as Location from 'expo-location';
 
@@ -208,8 +209,8 @@ export default function WorkoutDetailScreen({ route, navigation }: Props) {
           const region = {
             latitude: position.coords.latitude,
             longitude: position.coords.longitude,
-            latitudeDelta: 0.03,
-            longitudeDelta: 0.03,
+            latitudeDelta: 0.002,
+            longitudeDelta: 0.002,
           };
           setCardioDrafts(prev => {
             const existing = prev[workoutId];
@@ -350,8 +351,8 @@ export default function WorkoutDetailScreen({ route, navigation }: Props) {
             mapRegion: {
               latitude: initialCoord.latitude,
               longitude: initialCoord.longitude,
-              latitudeDelta: 0.01,
-              longitudeDelta: 0.01,
+              latitudeDelta: 0.002,
+              longitudeDelta: 0.002,
             },
           },
         };
@@ -397,6 +398,15 @@ export default function WorkoutDetailScreen({ route, navigation }: Props) {
   const pauseCardioTimer = (workoutId: number) => {
     stopLocationTracking(workoutId);
     handleCardioDraftChange(workoutId, { isRunning: false });
+  };
+
+  const toggleCardioTimer = (workoutId: number) => {
+    const current = cardioDrafts[workoutId];
+    if (current?.isRunning) {
+      pauseCardioTimer(workoutId);
+    } else {
+      void startCardioTimer(workoutId);
+    }
   };
 
   const stopCardioTimer = (workoutId: number) => {
@@ -651,29 +661,30 @@ export default function WorkoutDetailScreen({ route, navigation }: Props) {
                     ) : null}
                   </View>
                   <View style={styles.timerRow}>
-                    <Text style={styles.timerValue}>
-                      {formatElapsed(cardioDraft?.elapsedSeconds ?? 0)}
-                    </Text>
+                    <View>
+                      <Text style={styles.timerValue}>
+                        {formatElapsed(cardioDraft?.elapsedSeconds ?? 0)}
+                      </Text>
+                      <Text style={styles.timerDistance}>
+                        {cardioDraft?.distanceKm ? `${cardioDraft.distanceKm} km` : '0.00 km'}
+                      </Text>
+                    </View>
                     <View style={styles.timerActions}>
                       <Pressable
-                        style={[styles.timerButton, cardioDraft?.isRunning && styles.timerButtonActive]}
-                        onPress={() => startCardioTimer(workoutId)}
-                        disabled={cardioDraft?.isRunning}
+                        style={[styles.timerIconButton, cardioDraft?.isRunning && styles.timerIconButtonActive]}
+                        onPress={() => toggleCardioTimer(workoutId)}
                       >
-                        <Text style={[styles.timerButtonText, cardioDraft?.isRunning && styles.timerButtonTextActive]}>Starta</Text>
+                        <Ionicons
+                          name={cardioDraft?.isRunning ? 'pause' : 'play'}
+                          size={18}
+                          color={cardioDraft?.isRunning ? '#FFFFFF' : '#0F172A'}
+                        />
                       </Pressable>
                       <Pressable
-                        style={[styles.timerButton, styles.timerButtonMuted]}
-                        onPress={() => pauseCardioTimer(workoutId)}
-                        disabled={!cardioDraft?.isRunning}
-                      >
-                        <Text style={styles.timerButtonText}>Pausa</Text>
-                      </Pressable>
-                      <Pressable
-                        style={[styles.timerButton, styles.timerButtonStop]}
+                        style={[styles.timerIconButton, styles.timerIconButtonStop]}
                         onPress={() => stopCardioTimer(workoutId)}
                       >
-                        <Text style={[styles.timerButtonText, styles.timerButtonTextActive]}>Stoppa</Text>
+                        <Ionicons name="stop" size={18} color="#FFFFFF" />
                       </Pressable>
                     </View>
                   </View>
@@ -684,11 +695,11 @@ export default function WorkoutDetailScreen({ route, navigation }: Props) {
                       initialRegion={
                         cardioDraft?.route && cardioDraft.route.length > 0
                           ? {
-                              latitude: cardioDraft.route[cardioDraft.route.length - 1].latitude,
-                              longitude: cardioDraft.route[cardioDraft.route.length - 1].longitude,
-                              latitudeDelta: 0.01,
-                              longitudeDelta: 0.01,
-                            }
+                            latitude: cardioDraft.route[cardioDraft.route.length - 1].latitude,
+                            longitude: cardioDraft.route[cardioDraft.route.length - 1].longitude,
+                            latitudeDelta: 0.002,
+                            longitudeDelta: 0.002,
+                          }
                           : cardioDraft?.mapRegion ?? {
                               latitude: 59.3293,
                               longitude: 18.0686,
@@ -701,8 +712,8 @@ export default function WorkoutDetailScreen({ route, navigation }: Props) {
                           ? {
                               latitude: cardioDraft.route[cardioDraft.route.length - 1].latitude,
                               longitude: cardioDraft.route[cardioDraft.route.length - 1].longitude,
-                              latitudeDelta: 0.01,
-                              longitudeDelta: 0.01,
+                              latitudeDelta: 0.002,
+                              longitudeDelta: 0.002,
                             }
                           : cardioDraft?.mapRegion
                       }
@@ -747,17 +758,6 @@ export default function WorkoutDetailScreen({ route, navigation }: Props) {
                       <Text style={styles.cardioSuffix}>kcal</Text>
                     </View>
                   </View>
-                  <Pressable
-                    style={[styles.cardioSaveButton, cardioDraft?.isSaving && styles.cardioSaveButtonDisabled]}
-                    onPress={() => submitCardio(workoutId)}
-                    disabled={cardioDraft?.isSaving}
-                  >
-                    {cardioDraft?.isSaving ? (
-                      <ActivityIndicator color="#fff" />
-                    ) : (
-                      <Text style={styles.cardioSaveButtonText}>Spara cardio</Text>
-                    )}
-                  </Pressable>
                 </View>
               ) : null}
 
@@ -985,21 +985,6 @@ const styles = StyleSheet.create({
     color: '#64748B',
     fontFamily: 'Poppins_400Regular',
   },
-  cardioSaveButton: {
-    marginTop: 10,
-    backgroundColor: '#0D9488',
-    borderRadius: 10,
-    paddingVertical: 10,
-    alignItems: 'center',
-  },
-  cardioSaveButtonDisabled: {
-    opacity: 0.7,
-  },
-  cardioSaveButtonText: {
-    color: '#FFFFFF',
-    fontSize: 13,
-    fontFamily: 'Poppins_400Regular',
-  },
   mapContainer: {
     marginTop: 10,
     borderRadius: 12,
@@ -1008,7 +993,7 @@ const styles = StyleSheet.create({
     borderColor: '#E2E8F0',
   },
   map: {
-    height: 180,
+    height: 260,
     width: '100%',
   },
   timerRow: {
@@ -1022,32 +1007,29 @@ const styles = StyleSheet.create({
     color: '#0F172A',
     fontFamily: 'Poppins_400Regular',
   },
+  timerDistance: {
+    marginTop: 2,
+    fontSize: 12,
+    color: '#64748B',
+    fontFamily: 'Poppins_400Regular',
+  },
   timerActions: {
     flexDirection: 'row',
     gap: 8,
   },
-  timerButton: {
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: 999,
+  timerIconButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: '#E2E8F0',
   },
-  timerButtonMuted: {
-    backgroundColor: '#CBD5F5',
-  },
-  timerButtonStop: {
-    backgroundColor: '#0D9488',
-  },
-  timerButtonActive: {
+  timerIconButtonActive: {
     backgroundColor: '#14B8A6',
   },
-  timerButtonText: {
-    fontSize: 12,
-    color: '#0F172A',
-    fontFamily: 'Poppins_400Regular',
-  },
-  timerButtonTextActive: {
-    color: '#FFFFFF',
+  timerIconButtonStop: {
+    backgroundColor: '#0D9488',
   },
   cardioRow: {
     flexDirection: 'row',
