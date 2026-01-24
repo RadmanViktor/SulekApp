@@ -627,11 +627,12 @@ export default function WorkoutDetailScreen({ route, navigation }: Props) {
             const workoutId = workout.id;
             const isCompleting = workoutId ? completingWorkouts[workoutId] : false;
             const cardioDraft = workoutId ? cardioDrafts[workoutId] : undefined;
+            const isCardioOnly = (workout.exercises ?? []).length === 0;
 
             return (
             <View key={`${workout.name}-${workout.workoutDate}`} style={styles.workoutCard}>
               {workout.notes ? <Text style={styles.workoutNotes}>{workout.notes}</Text> : null}
-              {workoutId ? (
+              {workoutId && isCardioOnly ? (
                 <View style={styles.cardioCard}>
                   <View style={styles.cardioHeader}>
                     <Text style={styles.cardioTitle}>Cardio</Text>
@@ -951,6 +952,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Poppins_400Regular',
   },
   cardioInputRow: {
+    paddingTop: 11,
     flexDirection: 'row',
     gap: 8,
   },
