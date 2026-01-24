@@ -993,7 +993,7 @@ const styles = StyleSheet.create({
     borderColor: '#E2E8F0',
   },
   map: {
-    height: 260,
+    height: 320,
     width: '100%',
   },
   timerRow: {
