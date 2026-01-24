@@ -14,7 +14,10 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.Sulek"
+      "bundleIdentifier": "com.anonymous.Sulek",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Vi använder din plats för att spåra din rutt när du springer."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -22,13 +25,18 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-font"
+      "expo-font",
+      "expo-location"
     ]
   }
 }

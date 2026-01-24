@@ -6,6 +6,8 @@ import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { RootTabParamList } from '../navigations/types';
 import { toLocalDateString } from '../utils/date';
 import ConfettiCannon from 'react-native-confetti-cannon';
+import MapView, { Polyline } from 'react-native-maps';
+import * as Location from 'expo-location';
 
 type Props = BottomTabScreenProps<RootTabParamList, 'WorkoutDetailScreen'>;
 
@@ -47,6 +49,11 @@ type SetDraft = {
   isSaving?: boolean;
 };
 
+type Coordinate = {
+  latitude: number;
+  longitude: number;
+};
+
 type CardioDraft = {
   timeMinutes: string;
   distanceKm: string;
@@ -54,6 +61,14 @@ type CardioDraft = {
   isSaving?: boolean;
   elapsedSeconds?: number;
   isRunning?: boolean;
+  route?: Coordinate[];
+  distanceMeters?: number;
+  mapRegion?: {
+    latitude: number;
+    longitude: number;
+    latitudeDelta: number;
+    longitudeDelta: number;
+  };
 };
 
 const apiBaseUrl = 'http://localhost:5026';
@@ -68,6 +83,8 @@ export default function WorkoutDetailScreen({ route, navigation }: Props) {
   const [showConfetti, setShowConfetti] = useState(false);
   const repsInputRefs = useRef<Record<string, TextInput | null>>({});
   const cardioIntervals = useRef<Record<number, ReturnType<typeof setInterval> | null>>({});
+  const cardioLocationSubs = useRef<Record<number, Location.LocationSubscription | null>>({});
+  const cardioLocationInit = useRef<Set<number>>(new Set());
   const date = route.params.date;
   const screenWidth = Dimensions.get('window').width;
 
@@ -163,6 +180,9 @@ export default function WorkoutDetailScreen({ route, navigation }: Props) {
             isSaving: false,
             elapsedSeconds: 0,
             isRunning: false,
+            route: [],
+            distanceMeters: 0,
+            mapRegion: undefined,
           },
         };
         updated = true;
@@ -171,6 +191,43 @@ export default function WorkoutDetailScreen({ route, navigation }: Props) {
       return updated ? next : prev;
     });
   }, [workouts]);
+
+  useEffect(() => {
+    Object.entries(cardioDrafts).forEach(([id, draft]) => {
+      const workoutId = Number(id);
+      if (cardioLocationInit.current.has(workoutId)) return;
+      if ((draft?.route ?? []).length > 0 || draft?.mapRegion) return;
+      cardioLocationInit.current.add(workoutId);
+
+      (async () => {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted') return;
+
+        try {
+          const position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+          const region = {
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+            latitudeDelta: 0.03,
+            longitudeDelta: 0.03,
+          };
+          setCardioDrafts(prev => {
+            const existing = prev[workoutId];
+            if (!existing || existing.mapRegion) return prev;
+            return {
+              ...prev,
+              [workoutId]: {
+                ...existing,
+                mapRegion: region,
+              },
+            };
+          });
+        } catch (error) {
+          // ignore
+        }
+      })();
+    });
+  }, [cardioDrafts]);
 
   useEffect(() => {
     Object.entries(cardioDrafts).forEach(([id, draft]) => {
@@ -201,6 +258,10 @@ export default function WorkoutDetailScreen({ route, navigation }: Props) {
         if (interval) clearInterval(interval);
       });
       cardioIntervals.current = {};
+      Object.values(cardioLocationSubs.current).forEach(subscription => {
+        if (subscription) subscription.remove();
+      });
+      cardioLocationSubs.current = {};
     };
   }, [cardioDrafts]);
 
@@ -227,35 +288,144 @@ export default function WorkoutDetailScreen({ route, navigation }: Props) {
         isSaving: prev[workoutId]?.isSaving ?? false,
         elapsedSeconds: prev[workoutId]?.elapsedSeconds ?? 0,
         isRunning: prev[workoutId]?.isRunning ?? false,
+        route: prev[workoutId]?.route ?? [],
+        distanceMeters: prev[workoutId]?.distanceMeters ?? 0,
+        mapRegion: prev[workoutId]?.mapRegion,
         ...next,
       },
     }));
   };
 
-  const startCardioTimer = (workoutId: number) => {
-    handleCardioDraftChange(workoutId, { isRunning: true });
+  const toRadians = (value: number) => (value * Math.PI) / 180;
+
+  const calculateDistanceMeters = (from: Coordinate, to: Coordinate) => {
+    const earthRadius = 6371000;
+    const dLat = toRadians(to.latitude - from.latitude);
+    const dLon = toRadians(to.longitude - from.longitude);
+    const lat1 = toRadians(from.latitude);
+    const lat2 = toRadians(to.latitude);
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return earthRadius * c;
+  };
+
+  const stopLocationTracking = (workoutId: number) => {
+    const subscription = cardioLocationSubs.current[workoutId];
+    if (subscription) {
+      subscription.remove();
+      cardioLocationSubs.current[workoutId] = null;
+    }
+  };
+
+  const startCardioTimer = async (workoutId: number) => {
+    const current = cardioDrafts[workoutId];
+    if (current?.isRunning) return;
+
+    const { status } = await Location.requestForegroundPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Ingen platsåtkomst', 'Tillåt platsåtkomst för att spåra din rutt.');
+      return;
+    }
+
+    try {
+      const initial = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+      const initialCoord = {
+        latitude: initial.coords.latitude,
+        longitude: initial.coords.longitude,
+      };
+
+      setCardioDrafts(prev => {
+        const existing = prev[workoutId];
+        if (!existing) return prev;
+        const route = existing.route ?? [];
+        const nextRoute = route.length === 0 ? [initialCoord] : route;
+        return {
+          ...prev,
+          [workoutId]: {
+            ...existing,
+            route: nextRoute,
+            isRunning: true,
+            mapRegion: {
+              latitude: initialCoord.latitude,
+              longitude: initialCoord.longitude,
+              latitudeDelta: 0.01,
+              longitudeDelta: 0.01,
+            },
+          },
+        };
+      });
+
+      cardioLocationSubs.current[workoutId] = await Location.watchPositionAsync(
+        {
+          accuracy: Location.Accuracy.High,
+          timeInterval: 1000,
+          distanceInterval: 5,
+        },
+        location => {
+          const nextCoord = {
+            latitude: location.coords.latitude,
+            longitude: location.coords.longitude,
+          };
+
+          setCardioDrafts(prev => {
+            const existing = prev[workoutId];
+            if (!existing) return prev;
+            const route = existing.route ?? [];
+            const last = route[route.length - 1];
+            const added = last ? calculateDistanceMeters(last, nextCoord) : 0;
+            const distanceMeters = (existing.distanceMeters ?? 0) + added;
+            const distanceKm = distanceMeters > 0 ? (distanceMeters / 1000).toFixed(2) : '';
+            return {
+              ...prev,
+              [workoutId]: {
+                ...existing,
+                route: [...route, nextCoord],
+                distanceMeters,
+                distanceKm,
+              },
+            };
+          });
+        }
+      );
+    } catch (error) {
+      Alert.alert('Kunde inte starta GPS', 'Kontrollera platsbehörigheter och prova igen.');
+    }
   };
 
   const pauseCardioTimer = (workoutId: number) => {
+    stopLocationTracking(workoutId);
     handleCardioDraftChange(workoutId, { isRunning: false });
   };
 
   const stopCardioTimer = (workoutId: number) => {
+    stopLocationTracking(workoutId);
+    const current = cardioDrafts[workoutId];
+    if (!current) return;
+    const elapsedSeconds = current.elapsedSeconds ?? 0;
+    const minutes = elapsedSeconds > 0 ? (elapsedSeconds / 60).toFixed(2) : '';
+    const nextValues = {
+      timeMinutes: minutes,
+      distanceKm: current.distanceKm,
+      calories: current.calories,
+    };
+
     setCardioDrafts(prev => {
-      const current = prev[workoutId];
-      if (!current) return prev;
-      const elapsedSeconds = current.elapsedSeconds ?? 0;
-      const minutes = elapsedSeconds > 0 ? (elapsedSeconds / 60).toFixed(2) : '';
+      const existing = prev[workoutId];
+      if (!existing) return prev;
       return {
         ...prev,
         [workoutId]: {
-          ...current,
+          ...existing,
           timeMinutes: minutes,
           elapsedSeconds: 0,
           isRunning: false,
         },
       };
     });
+
+    void submitCardioValues(workoutId, nextValues, true);
   };
 
   const formatElapsed = (seconds: number) => {
@@ -279,15 +449,16 @@ export default function WorkoutDetailScreen({ route, navigation }: Props) {
     return parsed;
   };
 
-  const submitCardio = async (workoutId: number) => {
-    const draft = cardioDrafts[workoutId];
-    if (!draft) return;
-
-    const timeMinutes = parseOptionalNumber(draft.timeMinutes, 'Tid');
+  const submitCardioValues = async (
+    workoutId: number,
+    values: { timeMinutes: string; distanceKm: string; calories: string },
+    notify = false
+  ) => {
+    const timeMinutes = parseOptionalNumber(values.timeMinutes, 'Tid');
     if (timeMinutes === undefined) return;
-    const distanceKm = parseOptionalNumber(draft.distanceKm, 'Kilometer');
+    const distanceKm = parseOptionalNumber(values.distanceKm, 'Kilometer');
     if (distanceKm === undefined) return;
-    const calories = parseOptionalNumber(draft.calories, 'Kalorier', true);
+    const calories = parseOptionalNumber(values.calories, 'Kalorier', true);
     if (calories === undefined) return;
 
     handleCardioDraftChange(workoutId, { isSaving: true });
@@ -309,11 +480,24 @@ export default function WorkoutDetailScreen({ route, navigation }: Props) {
       }
 
       await loadWorkouts();
+      if (notify) {
+        Alert.alert('Cardio sparat', 'Din cardio är uppdaterad.');
+      }
     } catch (error) {
       Alert.alert('Kunde inte spara cardio', 'Kontrollera att API:t är igång.');
     } finally {
       handleCardioDraftChange(workoutId, { isSaving: false });
     }
+  };
+
+  const submitCardio = async (workoutId: number) => {
+    const draft = cardioDrafts[workoutId];
+    if (!draft) return;
+    await submitCardioValues(workoutId, {
+      timeMinutes: draft.timeMinutes,
+      distanceKm: draft.distanceKm,
+      calories: draft.calories,
+    });
   };
 
   const submitSet = async (exercise: ExerciseDto, workoutId?: number) => {
@@ -491,6 +675,41 @@ export default function WorkoutDetailScreen({ route, navigation }: Props) {
                         <Text style={[styles.timerButtonText, styles.timerButtonTextActive]}>Stoppa</Text>
                       </Pressable>
                     </View>
+                  </View>
+                  <View style={styles.mapContainer}>
+                    <MapView
+                      style={styles.map}
+                      showsUserLocation
+                      initialRegion={
+                        cardioDraft?.route && cardioDraft.route.length > 0
+                          ? {
+                              latitude: cardioDraft.route[cardioDraft.route.length - 1].latitude,
+                              longitude: cardioDraft.route[cardioDraft.route.length - 1].longitude,
+                              latitudeDelta: 0.01,
+                              longitudeDelta: 0.01,
+                            }
+                          : cardioDraft?.mapRegion ?? {
+                              latitude: 59.3293,
+                              longitude: 18.0686,
+                              latitudeDelta: 0.05,
+                              longitudeDelta: 0.05,
+                            }
+                      }
+                      region={
+                        cardioDraft?.route && cardioDraft.route.length > 0
+                          ? {
+                              latitude: cardioDraft.route[cardioDraft.route.length - 1].latitude,
+                              longitude: cardioDraft.route[cardioDraft.route.length - 1].longitude,
+                              latitudeDelta: 0.01,
+                              longitudeDelta: 0.01,
+                            }
+                          : cardioDraft?.mapRegion
+                      }
+                    >
+                      {cardioDraft?.route && cardioDraft.route.length > 1 ? (
+                        <Polyline coordinates={cardioDraft.route} strokeColor="#0D9488" strokeWidth={4} />
+                      ) : null}
+                    </MapView>
                   </View>
                   <View style={styles.cardioInputRow}>
                     <View style={styles.cardioField}>
@@ -778,6 +997,17 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 13,
     fontFamily: 'Poppins_400Regular',
+  },
+  mapContainer: {
+    marginTop: 10,
+    borderRadius: 12,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  map: {
+    height: 180,
+    width: '100%',
   },
   timerRow: {
     flexDirection: 'row',
