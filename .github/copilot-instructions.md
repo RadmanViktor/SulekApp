@@ -1,5 +1,23 @@
 # Copilot Instructions - SulekApp
 
+## ⚠️ CRITICAL: Agent Delegation Policy
+
+**ALWAYS use the Orchestrator agent for ANY task in this project.**
+
+- ✅ **DO:** Delegate to `.github/copilot/agents/orchestrator/agent.md`
+- ❌ **DON'T:** Use the general-purpose agent or other built-in agents
+- ❌ **DON'T:** Work directly on tasks yourself
+
+The Orchestrator coordinates a specialized team (Screen Expert, API Expert, UI Expert, QA Tester) that ensures quality, consistency, and proper testing. See `.github/copilot/agents/README.md` for details.
+
+**Example:**
+```
+User: "Add delete button to WorkoutDetailScreen"
+You: [Delegate to Orchestrator agent]
+```
+
+---
+
 ## Project Overview
 
 This is a Swedish-language workout tracking mobile app built with React Native (Expo) and TypeScript. The app connects to a .NET backend API running on `localhost:5026` and uses MSSQL database (via Docker).
