@@ -9,6 +9,7 @@ import { toLocalDateString } from '../utils/date';
 type HomeNav = BottomTabNavigationProp<RootTabParamList, 'HomeScreen'>;
 
 type WorkoutSummary = {
+  id: number;
   name: string;
   workoutDate: string;
   completed?: boolean;
@@ -55,8 +56,9 @@ export default function HomeScreen(){
 
                     if (!isActive) return;
                     setTodaysWorkout(
-                        workout?.name && workout.workoutDate
+                        workout?.id && workout.name && workout.workoutDate
                             ? { 
+                                id: workout.id,
                                 name: workout.name, 
                                 workoutDate: workout.workoutDate, 
                                 completed: workout.completed,
@@ -114,9 +116,9 @@ export default function HomeScreen(){
                     onPress={() => {
                         const isCardioOnly = (todaysWorkout.exercises ?? []).length === 0;
                         if (isCardioOnly) {
-                            navigation.navigate('CardioDetailScreen', { date: todayDate });
+                            navigation.navigate('CardioDetailScreen', { date: todayDate, workoutId: todaysWorkout.id });
                         } else {
-                            navigation.navigate('WorkoutDetailScreen', { date: todayDate });
+                            navigation.navigate('WorkoutDetailScreen', { date: todayDate, workoutId: todaysWorkout.id });
                         }
                     }}
                 >

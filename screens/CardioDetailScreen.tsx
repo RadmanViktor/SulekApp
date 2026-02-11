@@ -70,31 +70,28 @@ export default function CardioDetailScreen({ route, navigation }: Props) {
   const cardioLocationSub = useRef<Location.LocationSubscription | null>(null);
   const cardioLocationInit = useRef<boolean>(false);
   const date = route.params.date;
+  const workoutId = route.params.workoutId;
   const screenWidth = Dimensions.get('window').width;
-
-  console.log('Inside of CardioDetailScreen')
-
   const headerTitle = workout?.name ?? 'Cardio';
 
   const loadWorkout = useCallback(async () => {
     setIsLoading(true);
     try {
-      const response = await fetch(`${apiBaseUrl}/Workout/Workouts?date=${date}`);
+      const response = await fetch(`${apiBaseUrl}/Workout/Workouts/${workoutId}`);
       if (!response.ok) {
         Alert.alert('Kunde inte ladda pass', 'Kontrollera att API:t är igång.');
         setWorkout(null);
         return;
       }
-      const data: WorkoutResponse[] = await response.json();
-      const loaded = data.map(d => d.workout);
-      setWorkout(loaded[0] ?? null);
+      const data: WorkoutResponse = await response.json();
+      setWorkout(data.workout ?? null);
     } catch (error) {
       Alert.alert('Nätverksfel', 'Kunde inte hämta pass.');
       setWorkout(null);
     } finally {
       setIsLoading(false);
     }
-  }, [date]);
+  }, [workoutId]);
 
   useFocusEffect(
     useCallback(() => {
@@ -437,7 +434,7 @@ export default function CardioDetailScreen({ route, navigation }: Props) {
                   </View>
                 ) : null}
               </View>
-              
+
               {!workout.completed && (
                 <>
                   <View style={styles.timerRow}>

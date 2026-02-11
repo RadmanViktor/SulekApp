@@ -59,6 +59,7 @@ export default function WorkoutDetailScreen({ route, navigation }: Props) {
   const [showConfetti, setShowConfetti] = useState(false);
   const repsInputRefs = useRef<Record<string, TextInput | null>>({});
   const date = route.params.date;
+  const workoutId = route.params.workoutId;
   const screenWidth = Dimensions.get('window').width;
 
   const headerTitle = workout?.name ?? 'Pass';
@@ -66,23 +67,19 @@ export default function WorkoutDetailScreen({ route, navigation }: Props) {
   const loadWorkout = useCallback(async () => {
     setIsLoading(true);
     try {
-      const response = await fetch(`${apiBaseUrl}/Workout/Workouts`);
-      if (!response.ok) return;
-      const data: WorkoutResponse[] = await response.json();
-      const matching = data
-        .map(item => item.workout)
-        .filter(workout => {
-          if (!workout.workoutDate) return false;
-          const dateOnly = toLocalDateString(workout.workoutDate);
-          return dateOnly === date;
-        });
-      setWorkout(matching[0] ?? null);
+      const response = await fetch(`${apiBaseUrl}/Workout/Workouts/${workoutId}`);
+      if (!response.ok) {
+        setWorkout(null);
+        return;
+      }
+      const data: WorkoutResponse = await response.json();
+      setWorkout(data.workout ?? null);
     } catch (error) {
       setWorkout(null);
     } finally {
       setIsLoading(false);
     }
-  }, [date]);
+  }, [workoutId]);
 
   useEffect(() => {
     loadWorkout();

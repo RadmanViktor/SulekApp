@@ -131,17 +131,18 @@ export default function CalendarScreen() {
   const handleDayPress = useCallback(
     (dateString: string) => {
       if (workoutDates.includes(dateString)) {
+        const workoutId = workoutByDate[dateString];
         const isCardioOnly = workoutIsCardioByDate[dateString];
         if (isCardioOnly) {
-          navigation.navigate('CardioDetailScreen', { date: dateString });
+          navigation.navigate('CardioDetailScreen', { date: dateString, workoutId });
         } else {
-          navigation.navigate('WorkoutDetailScreen', { date: dateString });
+          navigation.navigate('WorkoutDetailScreen', { date: dateString, workoutId });
         }
         return;
       }
       navigation.navigate('CreateWorkoutScreen', { date: dateString });
     },
-    [navigation, workoutDates, workoutIsCardioByDate]
+    [navigation, workoutDates, workoutByDate, workoutIsCardioByDate]
   );
 
   const handleDayLongPress = useCallback(

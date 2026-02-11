@@ -4,6 +4,6 @@ export type RootTabParamList = {
   CalenderScreen: undefined; // obs: stavningen måste matcha exakt din Tab.Screen name
   ProfileScreen: undefined;
   ProgressScreen: undefined;
-  WorkoutDetailScreen: { date: string };
-  CardioDetailScreen: { date: string };
+  WorkoutDetailScreen: { date: string; workoutId: number };
+  CardioDetailScreen: { date: string; workoutId: number };
 };
