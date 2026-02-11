@@ -52,41 +52,45 @@ type WorkoutResponse = {
 const apiBaseUrl = 'http://localhost:5026';
 
 export default function CardioDetailScreen({ route, navigation }: Props) {
-  const [workouts, setWorkouts] = useState<WorkoutDto[]>([]);
+  const [workout, setWorkout] = useState<WorkoutDto | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [cardioDrafts, setCardioDrafts] = useState<Record<number, CardioDraft>>({});
-  const [completingWorkouts, setCompletingWorkouts] = useState<Record<number, boolean>>({});
+  const [cardioDraft, setCardioDraft] = useState<CardioDraft>({
+    timeMinutes: '',
+    distanceKm: '',
+    calories: '',
+    elapsedSeconds: 0,
+    isRunning: false,
+    route: [],
+    distanceMeters: 0,
+  });
+  const [isCompleting, setIsCompleting] = useState(false);
   const [confettiKey, setConfettiKey] = useState(0);
   const [showConfetti, setShowConfetti] = useState(false);
-  const cardioIntervals = useRef<Record<number, ReturnType<typeof setInterval> | null>>({});
-  const cardioLocationSubs = useRef<Record<number, Location.LocationSubscription | null>>({});
-  const cardioLocationInit = useRef<Set<number>>(new Set());
+  const cardioInterval = useRef<ReturnType<typeof setInterval> | null>(null);
+  const cardioLocationSub = useRef<Location.LocationSubscription | null>(null);
+  const cardioLocationInit = useRef<boolean>(false);
   const date = route.params.date;
   const screenWidth = Dimensions.get('window').width;
 
   console.log('Inside of CardioDetailScreen')
 
-  const headerTitle = useMemo(() => {
-    if (workouts.length === 1) return workouts[0]?.name ?? 'Cardio';
-    if (workouts.length > 1) return `Cardio (${workouts.length})`;
-    return 'Cardio';
-  }, [workouts]);
+  const headerTitle = workout?.name ?? 'Cardio';
 
-  const loadWorkouts = useCallback(async () => {
+  const loadWorkout = useCallback(async () => {
     setIsLoading(true);
     try {
       const response = await fetch(`${apiBaseUrl}/Workout/Workouts?date=${date}`);
       if (!response.ok) {
         Alert.alert('Kunde inte ladda pass', 'Kontrollera att API:t är igång.');
-        setWorkouts([]);
+        setWorkout(null);
         return;
       }
       const data: WorkoutResponse[] = await response.json();
       const loaded = data.map(d => d.workout);
-      setWorkouts(loaded);
+      setWorkout(loaded[0] ?? null);
     } catch (error) {
       Alert.alert('Nätverksfel', 'Kunde inte hämta pass.');
-      setWorkouts([]);
+      setWorkout(null);
     } finally {
       setIsLoading(false);
     }
@@ -94,124 +98,79 @@ export default function CardioDetailScreen({ route, navigation }: Props) {
 
   useFocusEffect(
     useCallback(() => {
-      void loadWorkouts();
-    }, [loadWorkouts])
+      void loadWorkout();
+    }, [loadWorkout])
   );
 
   useEffect(() => {
-    setCardioDrafts(prev => {
-      let next = { ...prev };
-      let updated = false;
-
-      workouts.forEach(workout => {
-        const workoutId = workout.id;
-        if (!workoutId) return;
-        if (!next[workoutId]) {
-          next[workoutId] = {
-            timeMinutes: workout.cardioTimeMinutes != null ? String(workout.cardioTimeMinutes) : '',
-            distanceKm: workout.cardioDistanceKm != null ? String(workout.cardioDistanceKm) : '',
-            calories: workout.cardioCalories != null ? String(workout.cardioCalories) : '',
-            elapsedSeconds: 0,
-            isRunning: false,
-            route: [],
-            distanceMeters: 0,
-          };
-          updated = true;
-        }
-      });
-
-      return updated ? next : prev;
-    });
-  }, [workouts]);
+    if (!workout) return;
+    setCardioDraft(prev => ({
+      ...prev,
+      timeMinutes: workout.cardioTimeMinutes != null ? String(workout.cardioTimeMinutes) : prev.timeMinutes,
+      distanceKm: workout.cardioDistanceKm != null ? String(workout.cardioDistanceKm) : prev.distanceKm,
+      calories: workout.cardioCalories != null ? String(workout.cardioCalories) : prev.calories,
+    }));
+  }, [workout]);
 
   useEffect(() => {
-    Object.entries(cardioDrafts).forEach(([id, draft]) => {
-      const workoutId = Number(id);
-      if (cardioLocationInit.current.has(workoutId)) return;
-      if ((draft?.route ?? []).length > 0 || draft?.mapRegion) return;
-      cardioLocationInit.current.add(workoutId);
+    if (cardioLocationInit.current) return;
+    if ((cardioDraft?.route ?? []).length > 0 || cardioDraft?.mapRegion) return;
+    cardioLocationInit.current = true;
 
-      (async () => {
-        const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== 'granted') return;
+    (async () => {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') return;
 
-        try {
-          const position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-          const region = {
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-            latitudeDelta: 0.002,
-            longitudeDelta: 0.002,
+      try {
+        const position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+        const region = {
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+          latitudeDelta: 0.002,
+          longitudeDelta: 0.002,
+        };
+        setCardioDraft(prev => {
+          if (prev.mapRegion) return prev;
+          return {
+            ...prev,
+            mapRegion: region,
           };
-          setCardioDrafts(prev => {
-            const existing = prev[workoutId];
-            if (!existing || existing.mapRegion) return prev;
-            return {
-              ...prev,
-              [workoutId]: {
-                ...existing,
-                mapRegion: region,
-              },
-            };
-          });
-        } catch (error) {
-          // ignore
-        }
-      })();
-    });
-  }, [cardioDrafts]);
-
-  useEffect(() => {
-    Object.entries(cardioDrafts).forEach(([id, draft]) => {
-      const workoutId = Number(id);
-      if (draft?.isRunning) {
-        if (cardioIntervals.current[workoutId]) return;
-        cardioIntervals.current[workoutId] = setInterval(() => {
-          setCardioDrafts(prev => {
-            const current = prev[workoutId];
-            if (!current?.isRunning) return prev;
-            return {
-              ...prev,
-              [workoutId]: {
-                ...current,
-                elapsedSeconds: (current.elapsedSeconds ?? 0) + 1,
-              },
-            };
-          });
-        }, 1000);
-      } else if (cardioIntervals.current[workoutId]) {
-        clearInterval(cardioIntervals.current[workoutId]!);
-        cardioIntervals.current[workoutId] = null;
+        });
+      } catch (error) {
+        // ignore
       }
-    });
+    })();
+  }, [cardioDraft]);
+
+  useEffect(() => {
+    if (cardioDraft?.isRunning) {
+      if (cardioInterval.current) return;
+      cardioInterval.current = setInterval(() => {
+        setCardioDraft(prev => {
+          if (!prev.isRunning) return prev;
+          return {
+            ...prev,
+            elapsedSeconds: (prev.elapsedSeconds ?? 0) + 1,
+          };
+        });
+      }, 1000);
+    } else if (cardioInterval.current) {
+      clearInterval(cardioInterval.current);
+      cardioInterval.current = null;
+    }
 
     return () => {
-      Object.values(cardioIntervals.current).forEach(interval => {
-        if (interval) clearInterval(interval);
-      });
-      cardioIntervals.current = {};
-      Object.values(cardioLocationSubs.current).forEach(subscription => {
-        if (subscription) subscription.remove();
-      });
-      cardioLocationSubs.current = {};
+      if (cardioInterval.current) clearInterval(cardioInterval.current);
+      cardioInterval.current = null;
+      if (cardioLocationSub.current) cardioLocationSub.current.remove();
+      cardioLocationSub.current = null;
     };
-  }, [cardioDrafts]);
+  }, [cardioDraft?.isRunning]);
 
-  const handleCardioDraftChange = (workoutId: number, next: Partial<CardioDraft>) => {
-    setCardioDrafts(prev => ({
+  const handleCardioDraftChange = (next: Partial<CardioDraft>) => {
+    setCardioDraft(prev => ({
       ...prev,
-      [workoutId]: {
-        timeMinutes: prev[workoutId]?.timeMinutes ?? '',
-        distanceKm: prev[workoutId]?.distanceKm ?? '',
-        calories: prev[workoutId]?.calories ?? '',
-        isSaving: prev[workoutId]?.isSaving ?? false,
-        elapsedSeconds: prev[workoutId]?.elapsedSeconds ?? 0,
-        isRunning: prev[workoutId]?.isRunning ?? false,
-        route: prev[workoutId]?.route ?? [],
-        distanceMeters: prev[workoutId]?.distanceMeters ?? 0,
-        mapRegion: prev[workoutId]?.mapRegion,
-        ...next,
-      },
+      ...next,
     }));
   };
 
@@ -230,17 +189,16 @@ export default function CardioDetailScreen({ route, navigation }: Props) {
     return earthRadius * c;
   };
 
-  const stopLocationTracking = (workoutId: number) => {
-    const subscription = cardioLocationSubs.current[workoutId];
+  const stopLocationTracking = () => {
+    const subscription = cardioLocationSub.current;
     if (subscription) {
       subscription.remove();
-      cardioLocationSubs.current[workoutId] = null;
+      cardioLocationSub.current = null;
     }
   };
 
-  const startCardioTimer = async (workoutId: number) => {
-    const current = cardioDrafts[workoutId];
-    if (current?.isRunning) return;
+  const startCardioTimer = async () => {
+    if (cardioDraft?.isRunning) return;
 
     const { status } = await Location.requestForegroundPermissionsAsync();
     if (status !== 'granted') {
@@ -255,28 +213,23 @@ export default function CardioDetailScreen({ route, navigation }: Props) {
         longitude: initial.coords.longitude,
       };
 
-      setCardioDrafts(prev => {
-        const existing = prev[workoutId];
-        if (!existing) return prev;
-        const route = existing.route ?? [];
+      setCardioDraft(prev => {
+        const route = prev.route ?? [];
         const nextRoute = route.length === 0 ? [initialCoord] : route;
         return {
           ...prev,
-          [workoutId]: {
-            ...existing,
-            route: nextRoute,
-            isRunning: true,
-            mapRegion: {
-              latitude: initialCoord.latitude,
-              longitude: initialCoord.longitude,
-              latitudeDelta: 0.002,
-              longitudeDelta: 0.002,
-            },
+          route: nextRoute,
+          isRunning: true,
+          mapRegion: {
+            latitude: initialCoord.latitude,
+            longitude: initialCoord.longitude,
+            latitudeDelta: 0.002,
+            longitudeDelta: 0.002,
           },
         };
       });
 
-      cardioLocationSubs.current[workoutId] = await Location.watchPositionAsync(
+      cardioLocationSub.current = await Location.watchPositionAsync(
         {
           accuracy: Location.Accuracy.High,
           timeInterval: 1000,
@@ -288,22 +241,17 @@ export default function CardioDetailScreen({ route, navigation }: Props) {
             longitude: location.coords.longitude,
           };
 
-          setCardioDrafts(prev => {
-            const existing = prev[workoutId];
-            if (!existing) return prev;
-            const route = existing.route ?? [];
+          setCardioDraft(prev => {
+            const route = prev.route ?? [];
             const last = route[route.length - 1];
             const added = last ? calculateDistanceMeters(last, nextCoord) : 0;
-            const distanceMeters = (existing.distanceMeters ?? 0) + added;
+            const distanceMeters = (prev.distanceMeters ?? 0) + added;
             const distanceKm = distanceMeters > 0 ? (distanceMeters / 1000).toFixed(2) : '';
             return {
               ...prev,
-              [workoutId]: {
-                ...existing,
-                route: [...route, nextCoord],
-                distanceMeters,
-                distanceKm,
-              },
+              route: [...route, nextCoord],
+              distanceMeters,
+              distanceKm,
             };
           });
         }
@@ -313,47 +261,37 @@ export default function CardioDetailScreen({ route, navigation }: Props) {
     }
   };
 
-  const pauseCardioTimer = (workoutId: number) => {
-    stopLocationTracking(workoutId);
-    handleCardioDraftChange(workoutId, { isRunning: false });
+  const pauseCardioTimer = () => {
+    stopLocationTracking();
+    handleCardioDraftChange({ isRunning: false });
   };
 
-  const toggleCardioTimer = (workoutId: number) => {
-    const current = cardioDrafts[workoutId];
-    if (current?.isRunning) {
-      pauseCardioTimer(workoutId);
+  const toggleCardioTimer = () => {
+    if (cardioDraft?.isRunning) {
+      pauseCardioTimer();
     } else {
-      void startCardioTimer(workoutId);
+      void startCardioTimer();
     }
   };
 
-  const stopCardioTimer = (workoutId: number) => {
-    stopLocationTracking(workoutId);
-    const current = cardioDrafts[workoutId];
-    if (!current) return;
-    const elapsedSeconds = current.elapsedSeconds ?? 0;
+  const stopCardioTimer = () => {
+    stopLocationTracking();
+    const elapsedSeconds = cardioDraft.elapsedSeconds ?? 0;
     const minutes = elapsedSeconds > 0 ? (elapsedSeconds / 60).toFixed(2) : '';
     const nextValues = {
       timeMinutes: minutes,
-      distanceKm: current.distanceKm,
-      calories: current.calories,
+      distanceKm: cardioDraft.distanceKm,
+      calories: cardioDraft.calories,
     };
 
-    setCardioDrafts(prev => {
-      const existing = prev[workoutId];
-      if (!existing) return prev;
-      return {
-        ...prev,
-        [workoutId]: {
-          ...existing,
-          timeMinutes: minutes,
-          elapsedSeconds: 0,
-          isRunning: false,
-        },
-      };
-    });
+    setCardioDraft(prev => ({
+      ...prev,
+      timeMinutes: minutes,
+      elapsedSeconds: 0,
+      isRunning: false,
+    }));
 
-    void submitCardioValues(workoutId, nextValues, true);
+    void submitCardioValues(nextValues, true);
   };
 
   const formatElapsed = (seconds: number) => {
@@ -378,10 +316,12 @@ export default function CardioDetailScreen({ route, navigation }: Props) {
   };
 
   const submitCardioValues = async (
-    workoutId: number,
     values: { timeMinutes: string; distanceKm: string; calories: string },
     notify = false
   ) => {
+    const workoutId = workout?.id;
+    if (!workoutId) return;
+
     const timeMinutes = parseOptionalNumber(values.timeMinutes, 'Tid');
     if (timeMinutes === undefined) return;
     const distanceKm = parseOptionalNumber(values.distanceKm, 'Kilometer');
@@ -389,7 +329,7 @@ export default function CardioDetailScreen({ route, navigation }: Props) {
     const calories = parseOptionalNumber(values.calories, 'Kalorier', true);
     if (calories === undefined) return;
 
-    handleCardioDraftChange(workoutId, { isSaving: true });
+    handleCardioDraftChange({ isSaving: true });
     try {
       const response = await fetch(`${apiBaseUrl}/Workout/Workouts/${workoutId}/Cardio`, {
         method: 'PUT',
@@ -407,29 +347,30 @@ export default function CardioDetailScreen({ route, navigation }: Props) {
         return;
       }
 
-      await loadWorkouts();
+      await loadWorkout();
       if (notify) {
         Alert.alert('Cardio sparat', 'Din cardio är uppdaterad.');
       }
     } catch (error) {
       Alert.alert('Kunde inte spara cardio', 'Kontrollera att API:t är igång.');
     } finally {
-      handleCardioDraftChange(workoutId, { isSaving: false });
+      handleCardioDraftChange({ isSaving: false });
     }
   };
 
-  const submitCardio = async (workoutId: number) => {
-    const draft = cardioDrafts[workoutId];
-    if (!draft) return;
-    await submitCardioValues(workoutId, {
-      timeMinutes: draft.timeMinutes,
-      distanceKm: draft.distanceKm,
-      calories: draft.calories,
+  const submitCardio = async () => {
+    await submitCardioValues({
+      timeMinutes: cardioDraft.timeMinutes,
+      distanceKm: cardioDraft.distanceKm,
+      calories: cardioDraft.calories,
     }, true);
   };
 
-  const markWorkoutCompleted = async (workoutId: number) => {
-    setCompletingWorkouts(prev => ({ ...prev, [workoutId]: true }));
+  const markWorkoutCompleted = async () => {
+    const workoutId = workout?.id;
+    if (!workoutId || isCompleting) return;
+
+    setIsCompleting(true);
     try {
       const response = await fetch(`${apiBaseUrl}/Workout/Workouts/${workoutId}/Complete`, {
         method: 'PUT',
@@ -441,14 +382,14 @@ export default function CardioDetailScreen({ route, navigation }: Props) {
         return;
       }
 
-      await loadWorkouts();
+      await loadWorkout();
       setShowConfetti(true);
       setConfettiKey(prev => prev + 1);
       setTimeout(() => setShowConfetti(false), 3000);
     } catch (error) {
       Alert.alert('Nätverksfel', 'Kunde inte markera pass som klart.');
     } finally {
-      setCompletingWorkouts(prev => ({ ...prev, [workoutId]: false }));
+      setIsCompleting(false);
     }
   };
 
@@ -474,171 +415,162 @@ export default function CardioDetailScreen({ route, navigation }: Props) {
           <View style={styles.loading}>
             <ActivityIndicator size="large" color="#14B8A6" />
           </View>
-        ) : workouts.length === 0 ? (
+        ) : !workout ? (
           <Text style={styles.helper}>Inga cardio-pass denna dag.</Text>
         ) : (
-          workouts.map(workout => {
-            const workoutId = workout.id;
-            const cardioDraft = workoutId ? cardioDrafts[workoutId] : undefined;
-            const isCompleting = workoutId ? completingWorkouts[workoutId] : false;
-
-            return (
-              <View key={`${workout.name}-${workout.workoutDate}`} style={styles.workoutCard}>
-                {workout.notes ? <Text style={styles.workoutNotes}>{workout.notes}</Text> : null}
-                {workoutId ? (
-                  <View style={styles.cardioCard}>
-                    <View style={styles.cardioHeader}>
-                      <Text style={styles.cardioTitle}>Cardio</Text>
-                      {(workout.cardioTimeMinutes != null || workout.cardioDistanceKm != null || workout.cardioCalories != null) ? (
-                        <View style={styles.cardioSummary}>
-                          {workout.cardioTimeMinutes != null ? (
-                            <Text style={styles.cardioSummaryText}>{workout.cardioTimeMinutes} min</Text>
-                          ) : null}
-                          {workout.cardioDistanceKm != null ? (
-                            <Text style={styles.cardioSummaryText}>{workout.cardioDistanceKm} km</Text>
-                          ) : null}
-                          {workout.cardioCalories != null ? (
-                            <Text style={styles.cardioSummaryText}>{workout.cardioCalories} kcal</Text>
-                          ) : null}
-                        </View>
-                      ) : null}
-                    </View>
-                    <View style={styles.timerRow}>
-                      <View>
-                        <Text style={styles.timerValue}>
-                          {formatElapsed(cardioDraft?.elapsedSeconds ?? 0)}
-                        </Text>
-                        <Text style={styles.timerDistance}>
-                          {cardioDraft?.distanceKm ? `${cardioDraft.distanceKm} km` : '0.00 km'}
-                        </Text>
-                      </View>
-                      <View style={styles.timerActions}>
-                        <Pressable
-                          style={[styles.timerIconButton, cardioDraft?.isRunning && styles.timerIconButtonActive]}
-                          onPress={() => toggleCardioTimer(workoutId)}
-                        >
-                          <Ionicons
-                            name={cardioDraft?.isRunning ? 'pause' : 'play'}
-                            size={18}
-                            color={cardioDraft?.isRunning ? '#FFFFFF' : '#0F172A'}
-                          />
-                        </Pressable>
-                        <Pressable
-                          style={[styles.timerIconButton, styles.timerIconButtonStop]}
-                          onPress={() => stopCardioTimer(workoutId)}
-                        >
-                          <Ionicons name="stop" size={18} color="#FFFFFF" />
-                        </Pressable>
-                      </View>
-                    </View>
-                    <View style={styles.mapContainer}>
-                      <MapView
-                        style={styles.map}
-                        showsUserLocation
-                        initialRegion={
-                          cardioDraft?.route && cardioDraft.route.length > 0
-                            ? {
-                              latitude: cardioDraft.route[cardioDraft.route.length - 1].latitude,
-                              longitude: cardioDraft.route[cardioDraft.route.length - 1].longitude,
-                              latitudeDelta: 0.002,
-                              longitudeDelta: 0.002,
-                            }
-                            : cardioDraft?.mapRegion ?? {
-                              latitude: 59.3293,
-                              longitude: 18.0686,
-                              latitudeDelta: 0.05,
-                              longitudeDelta: 0.05,
-                            }
-                        }
-                        region={
-                          cardioDraft?.route && cardioDraft.route.length > 0
-                            ? {
-                              latitude: cardioDraft.route[cardioDraft.route.length - 1].latitude,
-                              longitude: cardioDraft.route[cardioDraft.route.length - 1].longitude,
-                              latitudeDelta: 0.002,
-                              longitudeDelta: 0.002,
-                            }
-                            : cardioDraft?.mapRegion
-                        }
-                      >
-                        {cardioDraft?.route && cardioDraft.route.length > 1 ? (
-                          <Polyline coordinates={cardioDraft.route} strokeColor="#0D9488" strokeWidth={4} />
-                        ) : null}
-                      </MapView>
-                    </View>
-                    <View style={styles.cardioInputRow}>
-                      <View style={styles.cardioField}>
-                        <TextInput
-                          style={styles.cardioInput}
-                          placeholder="Tid"
-                          keyboardType="decimal-pad"
-                          value={cardioDraft?.timeMinutes ?? ''}
-                          onChangeText={value => handleCardioDraftChange(workoutId, { timeMinutes: value })}
-                          placeholderTextColor="#9ca3af"
-                        />
-                        <Text style={styles.cardioSuffix}>min</Text>
-                      </View>
-                      <View style={styles.cardioField}>
-                        <TextInput
-                          style={styles.cardioInput}
-                          placeholder="Km"
-                          keyboardType="decimal-pad"
-                          value={cardioDraft?.distanceKm ?? ''}
-                          onChangeText={value => handleCardioDraftChange(workoutId, { distanceKm: value })}
-                          placeholderTextColor="#9ca3af"
-                        />
-                        <Text style={styles.cardioSuffix}>km</Text>
-                      </View>
-                      <View style={styles.cardioField}>
-                        <TextInput
-                          style={styles.cardioInput}
-                          placeholder="Kcal"
-                          keyboardType="number-pad"
-                          value={cardioDraft?.calories ?? ''}
-                          onChangeText={value => handleCardioDraftChange(workoutId, { calories: value })}
-                          placeholderTextColor="#9ca3af"
-                        />
-                        <Text style={styles.cardioSuffix}>kcal</Text>
-                      </View>
-                    </View>
-                    <Pressable
-                      style={[styles.saveButton, cardioDraft?.isSaving && styles.saveButtonDisabled]}
-                      onPress={() => submitCardio(workoutId)}
-                      disabled={cardioDraft?.isSaving}
-                    >
-                      {cardioDraft?.isSaving ? (
-                        <ActivityIndicator color="#fff" />
-                      ) : (
-                        <Text style={styles.saveButtonText}>Spara cardio</Text>
-                      )}
-                    </Pressable>
+          <View style={styles.workoutCard}>
+            {workout.notes ? <Text style={styles.workoutNotes}>{workout.notes}</Text> : null}
+            <View style={styles.cardioCard}>
+              <View style={styles.cardioHeader}>
+                <Text style={styles.cardioTitle}>Cardio</Text>
+                {(workout.cardioTimeMinutes != null || workout.cardioDistanceKm != null || workout.cardioCalories != null) ? (
+                  <View style={styles.cardioSummary}>
+                    {workout.cardioTimeMinutes != null ? (
+                      <Text style={styles.cardioSummaryText}>{workout.cardioTimeMinutes} min</Text>
+                    ) : null}
+                    {workout.cardioDistanceKm != null ? (
+                      <Text style={styles.cardioSummaryText}>{workout.cardioDistanceKm} km</Text>
+                    ) : null}
+                    {workout.cardioCalories != null ? (
+                      <Text style={styles.cardioSummaryText}>{workout.cardioCalories} kcal</Text>
+                    ) : null}
                   </View>
                 ) : null}
-                <Pressable
-                  style={[
-                    styles.completeButton,
-                    workout.completed && styles.completeButtonDone,
-                    isCompleting && styles.completeButtonDisabled,
-                  ]}
-                  onPress={() => workoutId && markWorkoutCompleted(workoutId)}
-                  disabled={!workoutId || !!workout.completed || isCompleting}
-                >
-                  {isCompleting ? (
-                    <ActivityIndicator color="#fff" />
-                  ) : (
-                    <Text
-                      style={[
-                        styles.completeButtonText,
-                        workout.completed && styles.completeButtonTextDone,
-                      ]}
-                    >
-                      {workout.completed ? 'Klart' : 'Markera pass som klart'}
-                    </Text>
-                  )}
-                </Pressable>
               </View>
-            );
-          })
+              
+              {!workout.completed && (
+                <>
+                  <View style={styles.timerRow}>
+                    <View>
+                      <Text style={styles.timerValue}>
+                        {formatElapsed(cardioDraft?.elapsedSeconds ?? 0)}
+                      </Text>
+                      <Text style={styles.timerDistance}>
+                        {cardioDraft?.distanceKm ? `${cardioDraft.distanceKm} km` : '0.00 km'}
+                      </Text>
+                    </View>
+                    <View style={styles.timerActions}>
+                      <Pressable
+                        style={[styles.timerIconButton, cardioDraft?.isRunning && styles.timerIconButtonActive]}
+                        onPress={toggleCardioTimer}
+                      >
+                        <Ionicons
+                          name={cardioDraft?.isRunning ? 'pause' : 'play'}
+                          size={18}
+                          color={cardioDraft?.isRunning ? '#FFFFFF' : '#0F172A'}
+                        />
+                      </Pressable>
+                      <Pressable
+                        style={[styles.timerIconButton, styles.timerIconButtonStop]}
+                        onPress={stopCardioTimer}
+                      >
+                        <Ionicons name="stop" size={18} color="#FFFFFF" />
+                      </Pressable>
+                    </View>
+                  </View>
+                  <View style={styles.mapContainer}>
+                    <MapView
+                      style={styles.map}
+                      showsUserLocation
+                      initialRegion={
+                        cardioDraft?.route && cardioDraft.route.length > 0
+                          ? {
+                            latitude: cardioDraft.route[cardioDraft.route.length - 1].latitude,
+                            longitude: cardioDraft.route[cardioDraft.route.length - 1].longitude,
+                            latitudeDelta: 0.002,
+                            longitudeDelta: 0.002,
+                          }
+                          : cardioDraft?.mapRegion ?? {
+                            latitude: 59.3293,
+                            longitude: 18.0686,
+                            latitudeDelta: 0.05,
+                            longitudeDelta: 0.05,
+                          }
+                      }
+                      region={
+                        cardioDraft?.route && cardioDraft.route.length > 0
+                          ? {
+                            latitude: cardioDraft.route[cardioDraft.route.length - 1].latitude,
+                            longitude: cardioDraft.route[cardioDraft.route.length - 1].longitude,
+                            latitudeDelta: 0.002,
+                            longitudeDelta: 0.002,
+                          }
+                          : cardioDraft?.mapRegion
+                      }
+                    >
+                      {cardioDraft?.route && cardioDraft.route.length > 1 ? (
+                        <Polyline coordinates={cardioDraft.route} strokeColor="#0D9488" strokeWidth={4} />
+                      ) : null}
+                    </MapView>
+                  </View>
+                  <View style={styles.cardioInputRow}>
+                    <View style={styles.cardioField}>
+                      <TextInput
+                        style={styles.cardioInput}
+                        placeholder="Tid"
+                        keyboardType="decimal-pad"
+                        value={cardioDraft?.timeMinutes ?? ''}
+                        onChangeText={value => handleCardioDraftChange({ timeMinutes: value })}
+                        placeholderTextColor="#9ca3af"
+                      />
+                      <Text style={styles.cardioSuffix}>min</Text>
+                    </View>
+                    <View style={styles.cardioField}>
+                      <TextInput
+                        style={styles.cardioInput}
+                        placeholder="Km"
+                        keyboardType="decimal-pad"
+                        value={cardioDraft?.distanceKm ?? ''}
+                        onChangeText={value => handleCardioDraftChange({ distanceKm: value })}
+                        placeholderTextColor="#9ca3af"
+                      />
+                      <Text style={styles.cardioSuffix}>km</Text>
+                    </View>
+                    <View style={styles.cardioField}>
+                      <TextInput
+                        style={styles.cardioInput}
+                        placeholder="Kcal"
+                        keyboardType="number-pad"
+                        value={cardioDraft?.calories ?? ''}
+                        onChangeText={value => handleCardioDraftChange({ calories: value })}
+                        placeholderTextColor="#9ca3af"
+                      />
+                      <Text style={styles.cardioSuffix}>kcal</Text>
+                    </View>
+                  </View>
+                  <Pressable
+                    style={[styles.saveButton, cardioDraft?.isSaving && styles.saveButtonDisabled]}
+                    onPress={submitCardio}
+                    disabled={cardioDraft?.isSaving}
+                  >
+                    {cardioDraft?.isSaving ? (
+                      <ActivityIndicator color="#fff" />
+                    ) : (
+                      <Text style={styles.saveButtonText}>Spara cardio</Text>
+                    )}
+                  </Pressable>
+                </>
+              )}
+            </View>
+            {!workout.completed && (
+              <Pressable
+                style={[
+                  styles.completeButton,
+                  isCompleting && styles.completeButtonDisabled,
+                ]}
+                onPress={markWorkoutCompleted}
+                disabled={isCompleting}
+              >
+                {isCompleting ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.completeButtonText}>
+                    Markera pass som klart
+                  </Text>
+                )}
+              </Pressable>
+            )}
+          </View>
         )}
       </ScrollView>
     </SafeAreaView>

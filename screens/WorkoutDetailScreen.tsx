@@ -51,23 +51,19 @@ type SetDraft = {
 const apiBaseUrl = 'http://localhost:5026';
 
 export default function WorkoutDetailScreen({ route, navigation }: Props) {
-  const [workouts, setWorkouts] = useState<WorkoutDto[]>([]);
+  const [workout, setWorkout] = useState<WorkoutDto | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [setDrafts, setSetDrafts] = useState<Record<string, SetDraft>>({});
-  const [completingWorkouts, setCompletingWorkouts] = useState<Record<number, boolean>>({});
+  const [isCompleting, setIsCompleting] = useState(false);
   const [confettiKey, setConfettiKey] = useState(0);
   const [showConfetti, setShowConfetti] = useState(false);
   const repsInputRefs = useRef<Record<string, TextInput | null>>({});
   const date = route.params.date;
   const screenWidth = Dimensions.get('window').width;
 
-  const headerTitle = useMemo(() => {
-    if (workouts.length === 1) return workouts[0]?.name ?? 'Pass';
-    if (workouts.length > 1) return `Pass (${workouts.length})`;
-    return 'Pass';
-  }, [workouts]);
+  const headerTitle = workout?.name ?? 'Pass';
 
-  const loadWorkouts = useCallback(async () => {
+  const loadWorkout = useCallback(async () => {
     setIsLoading(true);
     try {
       const response = await fetch(`${apiBaseUrl}/Workout/Workouts`);
@@ -80,58 +76,54 @@ export default function WorkoutDetailScreen({ route, navigation }: Props) {
           const dateOnly = toLocalDateString(workout.workoutDate);
           return dateOnly === date;
         });
-        console.log('Matching workouts:', matching);
-        console.log('Date filter:', date);
-      setWorkouts(matching);
+      setWorkout(matching[0] ?? null);
     } catch (error) {
-      setWorkouts([]);
+      setWorkout(null);
     } finally {
       setIsLoading(false);
     }
   }, [date]);
 
   useEffect(() => {
-    loadWorkouts();
-  }, [loadWorkouts]);
+    loadWorkout();
+  }, [loadWorkout]);
 
   useFocusEffect(
     useCallback(() => {
-      loadWorkouts();
-    }, [loadWorkouts])
+      loadWorkout();
+    }, [loadWorkout])
   );
 
   useEffect(() => {
-    if (workouts.length === 0) return;
+    if (!workout) return;
     setSetDrafts(prev => {
       let next = prev;
       let updated = false;
 
-      workouts.forEach(workout => {
-        (workout.exercises ?? []).forEach(exercise => {
-          const key = `${workout.id ?? workout.name}-${exercise.workoutExerciseId ?? exercise.name}`;
-          const current = next[key];
-          if (current?.setNum) return;
+      (workout.exercises ?? []).forEach(exercise => {
+        const key = `${exercise.workoutExerciseId ?? exercise.name}`;
+        const current = next[key];
+        if (current?.setNum) return;
 
-          const maxSetNum = Math.max(0, ...(exercise.sets ?? []).map(set => set.setNum));
-          const suggested = String(maxSetNum + 1);
+        const maxSetNum = Math.max(0, ...(exercise.sets ?? []).map(set => set.setNum));
+        const suggested = String(maxSetNum + 1);
 
-          next = {
-            ...next,
-            [key]: {
-              setNum: suggested,
-              reps: current?.reps ?? '',
-              weightKg: current?.weightKg ?? '',
-              notes: current?.notes ?? '',
-              isSaving: current?.isSaving,
-            },
-          };
-          updated = true;
-        });
+        next = {
+          ...next,
+          [key]: {
+            setNum: suggested,
+            reps: current?.reps ?? '',
+            weightKg: current?.weightKg ?? '',
+            notes: current?.notes ?? '',
+            isSaving: current?.isSaving,
+          },
+        };
+        updated = true;
       });
 
       return updated ? next : prev;
     });
-  }, [workouts]);
+  }, [workout]);
 
   const handleDraftChange = (key: string, next: Partial<SetDraft>) => {
     setSetDrafts(prev => ({
@@ -161,14 +153,14 @@ export default function WorkoutDetailScreen({ route, navigation }: Props) {
     return parsed;
   };
 
-  const submitSet = async (exercise: ExerciseDto, workoutId?: number) => {
+  const submitSet = async (exercise: ExerciseDto) => {
     const workoutExerciseId = exercise.workoutExerciseId;
     if (!workoutExerciseId) {
       Alert.alert('Saknar koppling', 'WorkoutExerciseId saknas från API:t.');
       return;
     }
 
-    const key = `${workoutId ?? 'workout'}-${workoutExerciseId}`;
+    const key = `${workoutExerciseId}`;
     const draft = setDrafts[key];
     if (!draft || !draft.setNum || !draft.reps) {
       Alert.alert('Fyll i set', 'Ange setnummer och reps.');
@@ -218,7 +210,7 @@ export default function WorkoutDetailScreen({ route, navigation }: Props) {
         isSaving: false,
       });
       repsInputRefs.current[key]?.focus();
-      await loadWorkouts();
+      await loadWorkout();
     } catch (error) {
       Alert.alert('Kunde inte spara set', 'Kontrollera att API:t är igång.');
     } finally {
@@ -226,11 +218,11 @@ export default function WorkoutDetailScreen({ route, navigation }: Props) {
     }
   };
 
-  const markWorkoutCompleted = async (workoutId?: number) => {
-    if (!workoutId) return;
-    if (completingWorkouts[workoutId]) return;
+  const markWorkoutCompleted = async () => {
+    const workoutId = workout?.id;
+    if (!workoutId || isCompleting) return;
 
-    setCompletingWorkouts(prev => ({ ...prev, [workoutId]: true }));
+    setIsCompleting(true);
     try {
       const response = await fetch(`${apiBaseUrl}/Workout/Workouts/${workoutId}/Complete`, {
         method: 'PUT',
@@ -242,7 +234,7 @@ export default function WorkoutDetailScreen({ route, navigation }: Props) {
         return;
       }
 
-      await loadWorkouts();
+      await loadWorkout();
       setConfettiKey(prev => prev + 1);
       setShowConfetti(true);
       Alert.alert('Klart', 'Passet är markerat som klart.', [
@@ -254,7 +246,7 @@ export default function WorkoutDetailScreen({ route, navigation }: Props) {
     } catch (error) {
       Alert.alert('Kunde inte markera pass', 'Kontrollera att API:t är igång.');
     } finally {
-      setCompletingWorkouts(prev => ({ ...prev, [workoutId]: false }));
+      setIsCompleting(false);
     }
   };
 
@@ -281,117 +273,110 @@ export default function WorkoutDetailScreen({ route, navigation }: Props) {
           <View style={styles.loading}>
             <ActivityIndicator size="small" color="#0F172A" />
           </View>
-        ) : workouts.length === 0 ? (
+        ) : !workout ? (
           <Text style={styles.helper}>Inga pass hittades för detta datum.</Text>
         ) : (
-          workouts.map(workout => {
-            const workoutId = workout.id;
-            const isCompleting = workoutId ? completingWorkouts[workoutId] : false;
+          <View style={styles.workoutCard}>
+            {workout.notes ? <Text style={styles.workoutNotes}>{workout.notes}</Text> : null}
 
-            return (
-            <View key={`${workout.name}-${workout.workoutDate}`} style={styles.workoutCard}>
-              {workout.notes ? <Text style={styles.workoutNotes}>{workout.notes}</Text> : null}
+            {(workout.exercises ?? []).map(exercise => {
+              const key = `${exercise.workoutExerciseId ?? exercise.name}`;
+              const draft = setDrafts[key];
 
-              {(workout.exercises ?? []).map(exercise => {
-                const key = `${workout.id ?? workout.name}-${exercise.workoutExerciseId ?? exercise.name}`;
-                const draft = setDrafts[key];
+              return (
+                <View key={key} style={styles.exerciseCard}>
+                  <Text style={styles.exerciseName}>{exercise.name}</Text>
 
-                return (
-                  <View key={key} style={styles.exerciseCard}>
-                    <Text style={styles.exerciseName}>{exercise.name}</Text>
+                  {(exercise.sets ?? []).length > 0 ? (
+                    <View style={styles.setList}>
+                        {(exercise.sets ?? []).map(set => (
+                          <View key={`${exercise.name}-${set.setNum}`} style={styles.setRow}>
+                            <Text style={styles.setLabel}>Set {set.setNum}</Text>
+                            <Text style={styles.setValue}>{set.reps} reps</Text>
+                            <Text style={styles.setValue}>• {set.weightKg ?? 0} kg</Text>
+                            {set.notes ? (
+                              <Text style={styles.setNote}>• {set.notes}</Text>
+                            ) : null}
+                          </View>
+                        ))}
+                    </View>
+                  ) : (
+                    <Text style={styles.helper}>Inga set ännu.</Text>
+                  )}
 
-                    {(exercise.sets ?? []).length > 0 ? (
-                      <View style={styles.setList}>
-                          {(exercise.sets ?? []).map(set => (
-                            <View key={`${exercise.name}-${set.setNum}`} style={styles.setRow}>
-                              <Text style={styles.setLabel}>Set {set.setNum}</Text>
-                              <Text style={styles.setValue}>{set.reps} reps</Text>
-                              <Text style={styles.setValue}>• {set.weightKg ?? 0} kg</Text>
-                              {set.notes ? (
-                                <Text style={styles.setNote}>• {set.notes}</Text>
-                              ) : null}
-                            </View>
-                          ))}
-                      </View>
-                    ) : (
-                      <Text style={styles.helper}>Inga set ännu.</Text>
-                    )}
-
-                    {!workout.completed && (
-                      <>
-                        <View style={styles.formRow}>
-                          <TextInput
-                            style={styles.input}
-                            placeholder="Set"
-                            keyboardType="number-pad"
-                            value={draft?.setNum ?? ''}
-                            onChangeText={value => handleDraftChange(key, { setNum: value })}
-                            placeholderTextColor="#9ca3af"
-                          />
-                          <TextInput
-                            style={styles.input}
-                            placeholder="Reps"
-                            keyboardType="number-pad"
-                            value={draft?.reps ?? ''}
-                            onChangeText={value => handleDraftChange(key, { reps: value })}
-                            ref={input => {
-                              repsInputRefs.current[key] = input;
-                            }}
-                            placeholderTextColor="#9ca3af"
-                          />
-                          <TextInput
-                            style={styles.input}
-                            placeholder="Kg"
-                            keyboardType="decimal-pad"
-                            value={draft?.weightKg ?? ''}
-                            onChangeText={value => handleDraftChange(key, { weightKg: value })}
-                            placeholderTextColor="#9ca3af"
-                          />
-                        </View>
+                  {!workout.completed && (
+                    <>
+                      <View style={styles.formRow}>
                         <TextInput
-                          style={[styles.input, styles.notesInput]}
-                          placeholder="Anteckningar"
-                          value={draft?.notes ?? ''}
-                          onChangeText={value => handleDraftChange(key, { notes: value })}
+                          style={styles.input}
+                          placeholder="Set"
+                          keyboardType="number-pad"
+                          value={draft?.setNum ?? ''}
+                          onChangeText={value => handleDraftChange(key, { setNum: value })}
                           placeholderTextColor="#9ca3af"
                         />
-                        <Pressable
-                          style={[styles.addButton, draft?.isSaving && styles.addButtonDisabled]}
-                          onPress={() => submitSet(exercise, workout.id)}
-                          disabled={draft?.isSaving}
-                        >
-                          {draft?.isSaving ? (
-                            <ActivityIndicator color="#fff" />
-                          ) : (
-                            <Text style={styles.addButtonText}>Lägg till set</Text>
-                          )}
-                        </Pressable>
-                      </>
-                    )}
-                  </View>
-                );
-              })}
-              {!workout.completed && (
-                <Pressable
-                  style={[
-                    styles.completeButton,
-                    isCompleting && styles.completeButtonDisabled,
-                  ]}
-                  onPress={() => markWorkoutCompleted(workoutId)}
-                  disabled={!workoutId || isCompleting}
-                >
-                  {isCompleting ? (
-                    <ActivityIndicator color="#fff" />
-                  ) : (
-                    <Text style={styles.completeButtonText}>
-                      Markera pass som klart
-                    </Text>
+                        <TextInput
+                          style={styles.input}
+                          placeholder="Reps"
+                          keyboardType="number-pad"
+                          value={draft?.reps ?? ''}
+                          onChangeText={value => handleDraftChange(key, { reps: value })}
+                          ref={input => {
+                            repsInputRefs.current[key] = input;
+                          }}
+                          placeholderTextColor="#9ca3af"
+                        />
+                        <TextInput
+                          style={styles.input}
+                          placeholder="Kg"
+                          keyboardType="decimal-pad"
+                          value={draft?.weightKg ?? ''}
+                          onChangeText={value => handleDraftChange(key, { weightKg: value })}
+                          placeholderTextColor="#9ca3af"
+                        />
+                      </View>
+                      <TextInput
+                        style={[styles.input, styles.notesInput]}
+                        placeholder="Anteckningar"
+                        value={draft?.notes ?? ''}
+                        onChangeText={value => handleDraftChange(key, { notes: value })}
+                        placeholderTextColor="#9ca3af"
+                      />
+                      <Pressable
+                        style={[styles.addButton, draft?.isSaving && styles.addButtonDisabled]}
+                        onPress={() => submitSet(exercise)}
+                        disabled={draft?.isSaving}
+                      >
+                        {draft?.isSaving ? (
+                          <ActivityIndicator color="#fff" />
+                        ) : (
+                          <Text style={styles.addButtonText}>Lägg till set</Text>
+                        )}
+                      </Pressable>
+                    </>
                   )}
-                </Pressable>
-              )}
-            </View>
-          );
-          })
+                </View>
+              );
+            })}
+            {!workout.completed && (
+              <Pressable
+                style={[
+                  styles.completeButton,
+                  isCompleting && styles.completeButtonDisabled,
+                ]}
+                onPress={markWorkoutCompleted}
+                disabled={isCompleting}
+              >
+                {isCompleting ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.completeButtonText}>
+                    Markera pass som klart
+                  </Text>
+                )}
+              </Pressable>
+            )}
+          </View>
         )}
       </ScrollView>
     </SafeAreaView>
