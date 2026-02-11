@@ -317,78 +317,78 @@ export default function WorkoutDetailScreen({ route, navigation }: Props) {
                       <Text style={styles.helper}>Inga set ännu.</Text>
                     )}
 
-                    <View style={styles.formRow}>
-                      <TextInput
-                        style={styles.input}
-                        placeholder="Set"
-                        keyboardType="number-pad"
-                        value={draft?.setNum ?? ''}
-                        onChangeText={value => handleDraftChange(key, { setNum: value })}
-                        placeholderTextColor="#9ca3af"
-                      />
-                      <TextInput
-                        style={styles.input}
-                        placeholder="Reps"
-                        keyboardType="number-pad"
-                        value={draft?.reps ?? ''}
-                        onChangeText={value => handleDraftChange(key, { reps: value })}
-                        ref={input => {
-                          repsInputRefs.current[key] = input;
-                        }}
-                        placeholderTextColor="#9ca3af"
-                      />
-                      <TextInput
-                        style={styles.input}
-                        placeholder="Kg"
-                        keyboardType="decimal-pad"
-                        value={draft?.weightKg ?? ''}
-                        onChangeText={value => handleDraftChange(key, { weightKg: value })}
-                        placeholderTextColor="#9ca3af"
-                      />
-                    </View>
-                    <TextInput
-                      style={[styles.input, styles.notesInput]}
-                      placeholder="Anteckningar"
-                      value={draft?.notes ?? ''}
-                      onChangeText={value => handleDraftChange(key, { notes: value })}
-                      placeholderTextColor="#9ca3af"
-                    />
-                    <Pressable
-                      style={[styles.addButton, draft?.isSaving && styles.addButtonDisabled]}
-                      onPress={() => submitSet(exercise, workout.id)}
-                      disabled={draft?.isSaving}
-                    >
-                      {draft?.isSaving ? (
-                        <ActivityIndicator color="#fff" />
-                      ) : (
-                        <Text style={styles.addButtonText}>Lägg till set</Text>
-                      )}
-                    </Pressable>
+                    {!workout.completed && (
+                      <>
+                        <View style={styles.formRow}>
+                          <TextInput
+                            style={styles.input}
+                            placeholder="Set"
+                            keyboardType="number-pad"
+                            value={draft?.setNum ?? ''}
+                            onChangeText={value => handleDraftChange(key, { setNum: value })}
+                            placeholderTextColor="#9ca3af"
+                          />
+                          <TextInput
+                            style={styles.input}
+                            placeholder="Reps"
+                            keyboardType="number-pad"
+                            value={draft?.reps ?? ''}
+                            onChangeText={value => handleDraftChange(key, { reps: value })}
+                            ref={input => {
+                              repsInputRefs.current[key] = input;
+                            }}
+                            placeholderTextColor="#9ca3af"
+                          />
+                          <TextInput
+                            style={styles.input}
+                            placeholder="Kg"
+                            keyboardType="decimal-pad"
+                            value={draft?.weightKg ?? ''}
+                            onChangeText={value => handleDraftChange(key, { weightKg: value })}
+                            placeholderTextColor="#9ca3af"
+                          />
+                        </View>
+                        <TextInput
+                          style={[styles.input, styles.notesInput]}
+                          placeholder="Anteckningar"
+                          value={draft?.notes ?? ''}
+                          onChangeText={value => handleDraftChange(key, { notes: value })}
+                          placeholderTextColor="#9ca3af"
+                        />
+                        <Pressable
+                          style={[styles.addButton, draft?.isSaving && styles.addButtonDisabled]}
+                          onPress={() => submitSet(exercise, workout.id)}
+                          disabled={draft?.isSaving}
+                        >
+                          {draft?.isSaving ? (
+                            <ActivityIndicator color="#fff" />
+                          ) : (
+                            <Text style={styles.addButtonText}>Lägg till set</Text>
+                          )}
+                        </Pressable>
+                      </>
+                    )}
                   </View>
                 );
               })}
-              <Pressable
-                style={[
-                  styles.completeButton,
-                  workout.completed && styles.completeButtonDone,
-                  isCompleting && styles.completeButtonDisabled,
-                ]}
-                onPress={() => markWorkoutCompleted(workoutId)}
-                disabled={!workoutId || !!workout.completed || isCompleting}
-              >
-                {isCompleting ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <Text
-                    style={[
-                      styles.completeButtonText,
-                      workout.completed && styles.completeButtonTextDone,
-                    ]}
-                  >
-                    {workout.completed ? 'Klart' : 'Markera pass som klart'}
-                  </Text>
-                )}
-              </Pressable>
+              {!workout.completed && (
+                <Pressable
+                  style={[
+                    styles.completeButton,
+                    isCompleting && styles.completeButtonDisabled,
+                  ]}
+                  onPress={() => markWorkoutCompleted(workoutId)}
+                  disabled={!workoutId || isCompleting}
+                >
+                  {isCompleting ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <Text style={styles.completeButtonText}>
+                      Markera pass som klart
+                    </Text>
+                  )}
+                </Pressable>
+              )}
             </View>
           );
           })
