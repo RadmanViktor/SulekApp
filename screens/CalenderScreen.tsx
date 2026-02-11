@@ -16,21 +16,23 @@ export default function CalendarScreen() {
   const [workoutDates, setWorkoutDates] = useState<string[]>([]);
   const [workoutByDate, setWorkoutByDate] = useState<Record<string, number>>({});
   const [workoutStatusByDate, setWorkoutStatusByDate] = useState<Record<string, { total: number; completed: number }>>({});
+  const [workoutIsCardioByDate, setWorkoutIsCardioByDate] = useState<Record<string, boolean>>({});
   const apiBaseUrl = 'http://localhost:5026';
 
   const fetchWorkouts = useCallback(async () => {
     try {
       const response = await fetch(`${apiBaseUrl}/Workout/Workouts`);
       if (!response.ok) return;
-      const data: { workout?: { id?: number; workoutDate?: string; completed?: boolean; deleted?: boolean } }[] = await response.json();
+      const data: { workout?: { id?: number; workoutDate?: string; completed?: boolean; deleted?: boolean; exercises?: { name: string }[] } }[] = await response.json();
 
       const entries = data
         .map(item => item?.workout)
-        .filter((workout): workout is { id: number; workoutDate: string; completed?: boolean; deleted?: boolean } => Boolean(workout?.id && workout?.workoutDate) && !workout?.deleted)
+        .filter((workout): workout is { id: number; workoutDate: string; completed?: boolean; deleted?: boolean; exercises?: { name: string }[] } => Boolean(workout?.id && workout?.workoutDate) && !workout?.deleted)
         .map(workout => ({
           id: workout.id,
           date: toLocalDateString(workout.workoutDate),
           completed: Boolean(workout.completed),
+          isCardioOnly: (workout.exercises ?? []).length === 0,
         }));
 
       const dates = entries.map(entry => entry.date);
@@ -46,14 +48,20 @@ export default function CalendarScreen() {
         };
         return acc;
       }, {});
+      const cardioByDate = entries.reduce<Record<string, boolean>>((acc, entry) => {
+        acc[entry.date] = entry.isCardioOnly;
+        return acc;
+      }, {});
 
       setWorkoutDates(Array.from(new Set(dates)));
       setWorkoutByDate(mapByDate);
       setWorkoutStatusByDate(statusByDate);
+      setWorkoutIsCardioByDate(cardioByDate);
     } catch (error) {
       setWorkoutDates([]);
       setWorkoutByDate({});
       setWorkoutStatusByDate({});
+      setWorkoutIsCardioByDate({});
     }
   }, [apiBaseUrl]);
 
@@ -123,12 +131,17 @@ export default function CalendarScreen() {
   const handleDayPress = useCallback(
     (dateString: string) => {
       if (workoutDates.includes(dateString)) {
-        navigation.navigate('WorkoutDetailScreen', { date: dateString });
+        const isCardioOnly = workoutIsCardioByDate[dateString];
+        if (isCardioOnly) {
+          navigation.navigate('CardioDetailScreen', { date: dateString });
+        } else {
+          navigation.navigate('WorkoutDetailScreen', { date: dateString });
+        }
         return;
       }
       navigation.navigate('CreateWorkoutScreen', { date: dateString });
     },
-    [navigation, workoutDates]
+    [navigation, workoutDates, workoutIsCardioByDate]
   );
 
   const handleDayLongPress = useCallback(

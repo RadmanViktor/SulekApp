@@ -5,4 +5,5 @@ export type RootTabParamList = {
   ProfileScreen: undefined;
   ProgressScreen: undefined;
   WorkoutDetailScreen: { date: string };
+  CardioDetailScreen: { date: string };
 };

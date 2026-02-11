@@ -12,6 +12,7 @@ import CalenderScreen from './screens/CalenderScreen';
 import ProfileScreen from './screens/ProfileScreen';
 import ProgressScreen from './screens/ProgressScreen';
 import WorkoutDetailScreen from './screens/WorkoutDetailScreen';
+import CardioDetailScreen from './screens/CardioDetailScreen';
 import { RootTabParamList } from './navigations/types';
 
 const Tab = createBottomTabNavigator<RootTabParamList>();
@@ -103,6 +104,15 @@ export default function App() {
             component={WorkoutDetailScreen}
             options={{
               title: 'Passdetaljer',
+              tabBarButton: () => null,
+              tabBarItemStyle: { display: 'none' },
+            }}
+          />
+          <Tab.Screen
+            name="CardioDetailScreen"
+            component={CardioDetailScreen}
+            options={{
+              title: 'Cardio',
               tabBarButton: () => null,
               tabBarItemStyle: { display: 'none' },
             }}

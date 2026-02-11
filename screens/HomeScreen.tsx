@@ -8,9 +8,16 @@ import { toLocalDateString } from '../utils/date';
 
 type HomeNav = BottomTabNavigationProp<RootTabParamList, 'HomeScreen'>;
 
+type WorkoutSummary = {
+  name: string;
+  workoutDate: string;
+  completed?: boolean;
+  exercises?: { name: string }[];
+};
+
 export default function HomeScreen(){
     const navigation = useNavigation<HomeNav>();
-    const [todaysWorkout, setTodaysWorkout] = useState<{ name: string; workoutDate: string; completed?: boolean } | null>(null);
+    const [todaysWorkout, setTodaysWorkout] = useState<WorkoutSummary | null>(null);
     const [nextWorkout, setNextWorkout] = useState<{ name: string; workoutDate: string } | null>(null);
     const apiBaseUrl = 'http://localhost:5026';
     const todayDate = toLocalDateString(new Date());
@@ -23,7 +30,7 @@ export default function HomeScreen(){
                 try {
                     const response = await fetch(`${apiBaseUrl}/Workout/Workouts`);
                     if (!response.ok) return;
-                    const data: { workout?: { id?: number; name?: string; workoutDate?: string; completed?: boolean; deleted?: boolean } }[] = await response.json();
+                    const data: { workout?: { id?: number; name?: string; workoutDate?: string; completed?: boolean; deleted?: boolean; exercises?: { name: string }[] } }[] = await response.json();
                     const workout = data
                         .map(item => item.workout)
                         .find(item => {
@@ -49,7 +56,12 @@ export default function HomeScreen(){
                     if (!isActive) return;
                     setTodaysWorkout(
                         workout?.name && workout.workoutDate
-                            ? { name: workout.name, workoutDate: workout.workoutDate, completed: workout.completed }
+                            ? { 
+                                name: workout.name, 
+                                workoutDate: workout.workoutDate, 
+                                completed: workout.completed,
+                                exercises: workout.exercises ?? []
+                              }
                             : null
                     );
                     setNextWorkout(upcomingWorkout);
@@ -99,7 +111,14 @@ export default function HomeScreen(){
             {todaysWorkout && !todaysWorkout.completed ? (
                 <Pressable
                     style={style.quickButton}
-                    onPress={() => navigation.navigate('WorkoutDetailScreen', { date: todayDate })}
+                    onPress={() => {
+                        const isCardioOnly = (todaysWorkout.exercises ?? []).length === 0;
+                        if (isCardioOnly) {
+                            navigation.navigate('CardioDetailScreen', { date: todayDate });
+                        } else {
+                            navigation.navigate('WorkoutDetailScreen', { date: todayDate });
+                        }
+                    }}
                 >
                     <Text style={style.quickButtonText}>Visa pass</Text>
                 </Pressable>
