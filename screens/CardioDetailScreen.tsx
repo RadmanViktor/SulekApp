@@ -355,14 +355,6 @@ export default function CardioDetailScreen({ route, navigation }: Props) {
     }
   };
 
-  const submitCardio = async () => {
-    await submitCardioValues({
-      timeMinutes: cardioDraft.timeMinutes,
-      distanceKm: cardioDraft.distanceKm,
-      calories: cardioDraft.calories,
-    }, true);
-  };
-
   const markWorkoutCompleted = async () => {
     const workoutId = workout?.id;
     if (!workoutId || isCompleting) return;
@@ -535,17 +527,6 @@ export default function CardioDetailScreen({ route, navigation }: Props) {
                       <Text style={styles.cardioSuffix}>kcal</Text>
                     </View>
                   </View>
-                  <Pressable
-                    style={[styles.saveButton, cardioDraft?.isSaving && styles.saveButtonDisabled]}
-                    onPress={submitCardio}
-                    disabled={cardioDraft?.isSaving}
-                  >
-                    {cardioDraft?.isSaving ? (
-                      <ActivityIndicator color="#fff" />
-                    ) : (
-                      <Text style={styles.saveButtonText}>Spara cardio</Text>
-                    )}
-                  </Pressable>
                 </>
               )}
             </View>
