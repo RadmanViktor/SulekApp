@@ -7,6 +7,7 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { RootTabParamList } from '../navigations/types';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { toLocalDateString } from '../utils/date';
+import { getApiBaseUrl } from '../config/apiConfig';
 
 type CalenderNav = BottomTabNavigationProp<RootTabParamList, "CalenderScreen">;
 
@@ -17,7 +18,7 @@ export default function CalendarScreen() {
   const [workoutByDate, setWorkoutByDate] = useState<Record<string, number>>({});
   const [workoutStatusByDate, setWorkoutStatusByDate] = useState<Record<string, { total: number; completed: number }>>({});
   const [workoutIsCardioByDate, setWorkoutIsCardioByDate] = useState<Record<string, boolean>>({});
-  const apiBaseUrl = 'http://localhost:5026';
+  const apiBaseUrl = getApiBaseUrl();
 
   const fetchWorkouts = useCallback(async () => {
     try {

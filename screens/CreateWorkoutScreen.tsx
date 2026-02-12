@@ -10,6 +10,7 @@ import { RootTabParamList } from '../navigations/types';
 import { useFocusEffect } from '@react-navigation/native';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { toLocalDateString } from '../utils/date';
+import { getApiBaseUrl } from '../config/apiConfig';
 
 type Props = BottomTabScreenProps<RootTabParamList, "CreateWorkoutScreen">;
 
@@ -65,7 +66,7 @@ export default function CreateWorkoutScreen({ route, navigation }: Props) {
     },
   ];
 
-  const apiBaseUrl = 'http://localhost:5026';
+  const apiBaseUrl = getApiBaseUrl();
 
   const paramDate = useMemo(() => {
     const raw = route.params?.date;
@@ -94,13 +95,20 @@ export default function CreateWorkoutScreen({ route, navigation }: Props) {
 
     async function fetchExercises() {
       setIsLoadingExercises(true);
+      console.log('🏋️ Fetching exercises from:', `${apiBaseUrl}/Exercise/Exercises`);
       try {
         const response = await fetch(`${apiBaseUrl}/Exercise/Exercises`);
-        if (!response.ok) return;
+        console.log('📡 Response status:', response.status, response.ok);
+        if (!response.ok) {
+          console.log('❌ Response not OK');
+          return;
+        }
         const data: { id: number; name: string }[] = await response.json();
+        console.log('✅ Exercises loaded:', data.length, 'items');
         if (!isMounted) return;
         setExercises(data);
       } catch (error) {
+        console.log('❌ Fetch error:', error);
         if (!isMounted) return;
         setExercises([]);
       } finally {

@@ -4,6 +4,7 @@ import Svg, { Polyline, Circle, Text as SvgText } from 'react-native-svg';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Dropdown from '../components/Dropdown';
 import { useFocusEffect } from '@react-navigation/native';
+import { getApiBaseUrl } from '../config/apiConfig';
 type ExerciseItem = { id: number; name: string };
 type ProgressEntry = {
   workoutId: number;
@@ -16,7 +17,7 @@ type ProgressEntry = {
   notes?: string | null;
 };
 
-const apiBaseUrl = 'http://localhost:5026';
+const apiBaseUrl = getApiBaseUrl();
 
 export default function ProgressScreen() {
   const [selectedExercises, setSelectedExercises] = useState<string[]>([]);

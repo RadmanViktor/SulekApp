@@ -63,26 +63,30 @@ export default function CardioDetailScreen({ route, navigation }: Props) {
     route: [],
     distanceMeters: 0,
   });
+
   const [isCompleting, setIsCompleting] = useState(false);
   const [confettiKey, setConfettiKey] = useState(0);
   const [showConfetti, setShowConfetti] = useState(false);
   const cardioInterval = useRef<ReturnType<typeof setInterval> | null>(null);
   const cardioLocationSub = useRef<Location.LocationSubscription | null>(null);
   const cardioLocationInit = useRef<boolean>(false);
-  const date = route.params.date;
   const workoutId = route.params.workoutId;
+  const date = route.params.date;
   const screenWidth = Dimensions.get('window').width;
+
   const headerTitle = workout?.name ?? 'Cardio';
 
   const loadWorkout = useCallback(async () => {
     setIsLoading(true);
     try {
       const response = await fetch(`${apiBaseUrl}/Workout/Workouts/${workoutId}`);
+      console.log(await response.json())
       if (!response.ok) {
         Alert.alert('Kunde inte ladda pass', 'Kontrollera att API:t är igång.');
         setWorkout(null);
         return;
       }
+
       const data: WorkoutResponse = await response.json();
       setWorkout(data.workout ?? null);
     } catch (error) {
@@ -355,6 +359,14 @@ export default function CardioDetailScreen({ route, navigation }: Props) {
     }
   };
 
+  const submitCardio = async () => {
+    await submitCardioValues({
+      timeMinutes: cardioDraft.timeMinutes,
+      distanceKm: cardioDraft.distanceKm,
+      calories: cardioDraft.calories,
+    }, true);
+  };
+
   const markWorkoutCompleted = async () => {
     const workoutId = workout?.id;
     if (!workoutId || isCompleting) return;
@@ -527,6 +539,17 @@ export default function CardioDetailScreen({ route, navigation }: Props) {
                       <Text style={styles.cardioSuffix}>kcal</Text>
                     </View>
                   </View>
+                  <Pressable
+                    style={[styles.saveButton, cardioDraft?.isSaving && styles.saveButtonDisabled]}
+                    onPress={submitCardio}
+                    disabled={cardioDraft?.isSaving}
+                  >
+                    {cardioDraft?.isSaving ? (
+                      <ActivityIndicator color="#fff" />
+                    ) : (
+                      <Text style={styles.saveButtonText}>Spara cardio</Text>
+                    )}
+                  </Pressable>
                 </>
               )}
             </View>

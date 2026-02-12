@@ -5,6 +5,7 @@ import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { RootTabParamList } from '../navigations/types';
 import ProfileButton from '../components/ProfileButton';
 import { toLocalDateString } from '../utils/date';
+import { getApiBaseUrl } from '../config/apiConfig';
 
 type HomeNav = BottomTabNavigationProp<RootTabParamList, 'HomeScreen'>;
 
@@ -20,7 +21,7 @@ export default function HomeScreen(){
     const navigation = useNavigation<HomeNav>();
     const [todaysWorkout, setTodaysWorkout] = useState<WorkoutSummary | null>(null);
     const [nextWorkout, setNextWorkout] = useState<{ name: string; workoutDate: string } | null>(null);
-    const apiBaseUrl = 'http://localhost:5026';
+    const apiBaseUrl = getApiBaseUrl();
     const todayDate = toLocalDateString(new Date());
 
     useFocusEffect(

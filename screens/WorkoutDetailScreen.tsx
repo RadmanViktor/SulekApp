@@ -7,6 +7,7 @@ import { RootTabParamList } from '../navigations/types';
 import { toLocalDateString } from '../utils/date';
 import ConfettiCannon from 'react-native-confetti-cannon';
 import { Ionicons } from '@expo/vector-icons';
+import { getApiBaseUrl } from '../config/apiConfig';
 
 type Props = BottomTabScreenProps<RootTabParamList, 'WorkoutDetailScreen'>;
 
@@ -48,7 +49,7 @@ type SetDraft = {
   isSaving?: boolean;
 };
 
-const apiBaseUrl = 'http://localhost:5026';
+const apiBaseUrl = getApiBaseUrl();
 
 export default function WorkoutDetailScreen({ route, navigation }: Props) {
   const [workout, setWorkout] = useState<WorkoutDto | null>(null);

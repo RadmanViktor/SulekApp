@@ -18,6 +18,26 @@ You: [Delegate to Orchestrator agent]
 
 ---
 
+## ⚠️ CRITICAL: Always Ask Before Editing
+
+**NEVER edit, create, or delete files without explicit permission.**
+
+- ✅ **DO:** Propose changes and ask for approval first
+- ✅ **DO:** Explain what needs to change and why
+- ✅ **DO:** Show code diffs or examples in your explanation
+- ❌ **DON'T:** Make changes directly, even if they seem obvious or trivial
+- ❌ **DON'T:** Assume permission based on previous approvals
+
+**Exception:** Session workspace files (`~/.copilot/session-state/`) like plan.md, notes, guides are okay to create/edit without asking.
+
+**Example:**
+```
+User: "Fix the API connection"
+You: "I found the issue in CardioDetailScreen.tsx on line 52. May I update it to use getApiBaseUrl()?"
+```
+
+---
+
 ## Project Overview
 
 This is a Swedish-language workout tracking mobile app built with React Native (Expo) and TypeScript. The app connects to a .NET backend API running on `localhost:5026` and uses MSSQL database (via Docker).
