@@ -249,12 +249,11 @@ export default function CreateWorkoutScreen({ route, navigation }: Props) {
   }
 
   return (
-      <SafeAreaView style={{ flex: 1 }} edges={['right', 'left', 'top']}>
+    <SafeAreaView style={{ flex: 1 }} edges={['right', 'left', 'top']}>
       <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40 }}>
         <Text style={styles.header}>Skapa nytt träningspass</Text>
 
         <View style={styles.inputContainer}>
-          <Text style={styles.label}>Pass-typ</Text>
           <View style={styles.toggleRow}>
             <Pressable
               style={[styles.toggleButton, !isCardioOnly && styles.toggleButtonActive]}
@@ -322,11 +321,11 @@ export default function CreateWorkoutScreen({ route, navigation }: Props) {
             colors={['#14B8A6', '#0D9488']} // teal gradient
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
-              style={[
-                styles.button,
-                isSaveDisabled && styles.buttonDisabled,
-              ]}
-            >
+            style={[
+              styles.button,
+              isSaveDisabled && styles.buttonDisabled,
+            ]}
+          >
             {isSaving ? (
               <ActivityIndicator color="#fff" />
             ) : (

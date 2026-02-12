@@ -9,6 +9,7 @@ import ConfettiCannon from 'react-native-confetti-cannon';
 import { Ionicons } from '@expo/vector-icons';
 import MapView, { Polyline } from 'react-native-maps';
 import * as Location from 'expo-location';
+import { getApiBaseUrl } from '../config/apiConfig';
 
 type Props = BottomTabScreenProps<RootTabParamList, 'CardioDetailScreen'>;
 
@@ -49,7 +50,7 @@ type WorkoutResponse = {
   workout: WorkoutDto;
 };
 
-const apiBaseUrl = 'http://localhost:5026';
+const apiBaseUrl = getApiBaseUrl();
 
 export default function CardioDetailScreen({ route, navigation }: Props) {
   const [workout, setWorkout] = useState<WorkoutDto | null>(null);
@@ -73,6 +74,7 @@ export default function CardioDetailScreen({ route, navigation }: Props) {
   const workoutId = route.params.workoutId;
   const date = route.params.date;
   const screenWidth = Dimensions.get('window').width;
+  console.log('workoutId: ', workoutId);
 
   const headerTitle = workout?.name ?? 'Cardio';
 
@@ -80,7 +82,6 @@ export default function CardioDetailScreen({ route, navigation }: Props) {
     setIsLoading(true);
     try {
       const response = await fetch(`${apiBaseUrl}/Workout/Workouts/${workoutId}`);
-      console.log(await response.json())
       if (!response.ok) {
         Alert.alert('Kunde inte ladda pass', 'Kontrollera att API:t är igång.');
         setWorkout(null);
@@ -359,14 +360,6 @@ export default function CardioDetailScreen({ route, navigation }: Props) {
     }
   };
 
-  const submitCardio = async () => {
-    await submitCardioValues({
-      timeMinutes: cardioDraft.timeMinutes,
-      distanceKm: cardioDraft.distanceKm,
-      calories: cardioDraft.calories,
-    }, true);
-  };
-
   const markWorkoutCompleted = async () => {
     const workoutId = workout?.id;
     if (!workoutId || isCompleting) return;
@@ -539,17 +532,6 @@ export default function CardioDetailScreen({ route, navigation }: Props) {
                       <Text style={styles.cardioSuffix}>kcal</Text>
                     </View>
                   </View>
-                  <Pressable
-                    style={[styles.saveButton, cardioDraft?.isSaving && styles.saveButtonDisabled]}
-                    onPress={submitCardio}
-                    disabled={cardioDraft?.isSaving}
-                  >
-                    {cardioDraft?.isSaving ? (
-                      <ActivityIndicator color="#fff" />
-                    ) : (
-                      <Text style={styles.saveButtonText}>Spara cardio</Text>
-                    )}
-                  </Pressable>
                 </>
               )}
             </View>
