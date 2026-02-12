@@ -89,6 +89,7 @@ export default function CardioDetailScreen({ route, navigation }: Props) {
       }
 
       const data: WorkoutResponse = await response.json();
+      console.log(data);
       setWorkout(data.workout ?? null);
     } catch (error) {
       Alert.alert('Nätverksfel', 'Kunde inte hämta pass.');
@@ -128,8 +129,8 @@ export default function CardioDetailScreen({ route, navigation }: Props) {
         const region = {
           latitude: position.coords.latitude,
           longitude: position.coords.longitude,
-          latitudeDelta: 0.002,
-          longitudeDelta: 0.002,
+          latitudeDelta: 0.001,
+          longitudeDelta: 0.001,
         };
         setCardioDraft(prev => {
           if (prev.mapRegion) return prev;
@@ -471,8 +472,8 @@ export default function CardioDetailScreen({ route, navigation }: Props) {
                           ? {
                             latitude: cardioDraft.route[cardioDraft.route.length - 1].latitude,
                             longitude: cardioDraft.route[cardioDraft.route.length - 1].longitude,
-                            latitudeDelta: 0.002,
-                            longitudeDelta: 0.002,
+                            latitudeDelta: 0.001,
+                            longitudeDelta: 0.001,
                           }
                           : cardioDraft?.mapRegion ?? {
                             latitude: 59.3293,
@@ -486,8 +487,8 @@ export default function CardioDetailScreen({ route, navigation }: Props) {
                           ? {
                             latitude: cardioDraft.route[cardioDraft.route.length - 1].latitude,
                             longitude: cardioDraft.route[cardioDraft.route.length - 1].longitude,
-                            latitudeDelta: 0.002,
-                            longitudeDelta: 0.002,
+                            latitudeDelta: 0.001,
+                            longitudeDelta: 0.001,
                           }
                           : cardioDraft?.mapRegion
                       }
