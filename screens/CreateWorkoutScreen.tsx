@@ -22,6 +22,8 @@ export default function CreateWorkoutScreen({ route, navigation }: Props) {
   const [isLoadingExercises, setIsLoadingExercises] = useState(false);
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
   const [isCardioOnly, setIsCardioOnly] = useState(false);
+  const [occupiedDates, setOccupiedDates] = useState<Set<string>>(new Set());
+  const [previousDate, setPreviousDate] = useState<Date>(() => paramDate ?? new Date());
   const modalMaxHeight = Math.round(Dimensions.get('window').height * 0.7);
   const templates = [
     {
@@ -124,6 +126,40 @@ export default function CreateWorkoutScreen({ route, navigation }: Props) {
     };
   }, [apiBaseUrl]);
 
+  useEffect(() => {
+    let isMounted = true;
+
+    async function fetchWorkoutDates() {
+      try {
+        const response = await fetch(`${apiBaseUrl}/Workout/Workouts`);
+        if (!response.ok) {
+          if (isMounted) setOccupiedDates(new Set());
+          return;
+        }
+        const data: { workout?: { workoutDate?: string } }[] = await response.json();
+        
+        const dates = data
+          .map(item => item?.workout)
+          .filter((workout): workout is { workoutDate: string } => Boolean(workout?.workoutDate))
+          .map(workout => toLocalDateString(workout.workoutDate));
+        
+        if (isMounted) {
+          setOccupiedDates(new Set(dates));
+        }
+      } catch (error) {
+        if (isMounted) {
+          setOccupiedDates(new Set());
+        }
+      }
+    }
+
+    fetchWorkoutDates();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [apiBaseUrl]);
+
   const handleCreateExercise = async (name: string) => {
     try {
       const response = await fetch(`${apiBaseUrl}/Exercise/CreateExercise`, {
@@ -149,6 +185,17 @@ export default function CreateWorkoutScreen({ route, navigation }: Props) {
 
   const onChange = (_event: any, selectedDate?: Date) => {
     if (!selectedDate) return; // iOS kan skicka undefined vid cancel
+    
+    const dateStr = toLocalDateString(selectedDate);
+    if (occupiedDates.has(dateStr)) {
+      Alert.alert(
+        'Datum upptaget',
+        'Det finns redan ett pass registrerat för det här datumet. Välj ett annat datum.'
+      );
+      return;
+    }
+    
+    setPreviousDate(date);
     setDate(selectedDate);
   };
 
@@ -304,6 +351,7 @@ export default function CreateWorkoutScreen({ route, navigation }: Props) {
         ) : null}
         <View style={styles.inputContainer}>
           <Text style={styles.label}>Välj datum för när du vill registrera passet</Text>
+          <Text style={styles.helperText}>OBS: Datum som redan har ett registrerat pass kan inte väljas.</Text>
           <RNDateTimePicker locale="sv-SE"
             testID="dateTimePicker"
             value={date}
@@ -571,5 +619,12 @@ const styles = StyleSheet.create({
     borderColor: '#d1d5db',
     borderRadius: 8,
     paddingHorizontal: 10,
-  }
+  },
+  helperText: {
+    fontFamily: 'Poppins_400Regular',
+    fontSize: 13,
+    color: '#64748B',
+    marginTop: 4,
+    marginLeft: 4,
+  },
 });
