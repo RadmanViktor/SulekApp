@@ -116,6 +116,17 @@ export default function CardioDetailScreen({ route, navigation }: Props) {
   }, [workout]);
 
   useEffect(() => {
+    if (!workout?.id) return;
+    setCardioDraft(prev => ({
+      ...prev,
+      route: [],
+      distanceMeters: 0,
+      elapsedSeconds: 0,
+      isRunning: false,
+    }));
+  }, [workout?.id]);
+
+  useEffect(() => {
     if (cardioLocationInit.current) return;
     if ((cardioDraft?.route ?? []).length > 0 || cardioDraft?.mapRegion) return;
     cardioLocationInit.current = true;
@@ -378,6 +389,14 @@ export default function CardioDetailScreen({ route, navigation }: Props) {
       }
 
       await loadWorkout();
+      // Reset tracking state after completion
+      setCardioDraft(prev => ({
+        ...prev,
+        route: [],
+        distanceMeters: 0,
+        elapsedSeconds: 0,
+        isRunning: false,
+      }));
       setShowConfetti(true);
       setConfettiKey(prev => prev + 1);
       setTimeout(() => setShowConfetti(false), 3000);
