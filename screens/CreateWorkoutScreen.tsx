@@ -137,12 +137,12 @@ export default function CreateWorkoutScreen({ route, navigation }: Props) {
           return;
         }
         const data: { workout?: { workoutDate?: string } }[] = await response.json();
-        
+
         const dates = data
           .map(item => item?.workout)
           .filter((workout): workout is { workoutDate: string } => Boolean(workout?.workoutDate))
           .map(workout => toLocalDateString(workout.workoutDate));
-        
+
         if (isMounted) {
           setOccupiedDates(new Set(dates));
         }
@@ -185,7 +185,7 @@ export default function CreateWorkoutScreen({ route, navigation }: Props) {
 
   const onChange = (_event: any, selectedDate?: Date) => {
     if (!selectedDate) return; // iOS kan skicka undefined vid cancel
-    
+
     const dateStr = toLocalDateString(selectedDate);
     if (occupiedDates.has(dateStr)) {
       Alert.alert(
@@ -194,7 +194,7 @@ export default function CreateWorkoutScreen({ route, navigation }: Props) {
       );
       return;
     }
-    
+
     setPreviousDate(date);
     setDate(selectedDate);
   };
@@ -351,7 +351,6 @@ export default function CreateWorkoutScreen({ route, navigation }: Props) {
         ) : null}
         <View style={styles.inputContainer}>
           <Text style={styles.label}>Välj datum för när du vill registrera passet</Text>
-          <Text style={styles.helperText}>OBS: Datum som redan har ett registrerat pass kan inte väljas.</Text>
           <RNDateTimePicker locale="sv-SE"
             testID="dateTimePicker"
             value={date}
@@ -619,12 +618,5 @@ const styles = StyleSheet.create({
     borderColor: '#d1d5db',
     borderRadius: 8,
     paddingHorizontal: 10,
-  },
-  helperText: {
-    fontFamily: 'Poppins_400Regular',
-    fontSize: 13,
-    color: '#64748B',
-    marginTop: 4,
-    marginLeft: 4,
-  },
+  }
 });
