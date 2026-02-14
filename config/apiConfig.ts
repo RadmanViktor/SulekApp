@@ -15,9 +15,14 @@ export const getApiBaseUrl = (): string => {
   const isExpoGo = Constants.executionEnvironment === 'storeClient';
   const hostname = Constants.expoConfig?.hostUri?.split(':')[0];
 
+  console.log('Device Name: -', Constants.deviceName)
   console.log('🔍 API Config Debug:');
   console.log('  - Constants.executionEnvironment:', Constants.executionEnvironment);
   console.log('  - hostname:', hostname);
+
+  if (Constants.deviceName === 'iPhone 17 Pro') {
+    return LOCALHOST_URL;
+  }
 
   // If running in Expo Go on a phone, hostname will be your computer's IP
   if (isExpoGo && hostname && hostname !== 'localhost') {
