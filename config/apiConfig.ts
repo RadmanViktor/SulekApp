@@ -2,7 +2,7 @@ import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 
 const LOCALHOST_URL = 'http://localhost:5026';
-const DEVICE_URL = 'http://192.168.68.106:5026';
+const DEVICE_URL = 'http://192.168.68.102:5026';
 
 /**
  * Auto-detects if running on simulator or real device and returns appropriate API base URL

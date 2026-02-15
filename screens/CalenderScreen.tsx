@@ -1,8 +1,8 @@
 import React, { useMemo, useEffect, useState, useCallback } from 'react';
-import { Alert, StyleSheet, View, Text, Pressable } from 'react-native';
+import { Alert, StyleSheet, View, Text, Pressable, ImageBackground } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CalendarList } from 'react-native-calendars';
-import '../config/calendarLocale'; 
+import '../config/calendarLocale';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { RootTabParamList } from '../navigations/types';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
@@ -156,60 +156,65 @@ export default function CalendarScreen() {
   );
 
   return (
-    <SafeAreaView style={styles.wrapper} edges={['top', 'left', 'right']}>
-      <CalendarList
-        firstDay={1}
-        horizontal
-        pagingEnabled               // 👈 snap per månad
-        markedDates={markedDates}
-        pastScrollRange={12}
-        futureScrollRange={12}
-        showScrollIndicator={false}
-        dayComponent={({ date, state }) => {
-          const dateString = date?.dateString;
-          const status = dateString ? workoutStatusByDate[dateString] : undefined;
-          const isCompleted = status ? status.completed === status.total : false;
-          const isWorkout = dateString ? workoutDates.includes(dateString) : false;
-          const isDisabled = state === 'disabled';
-          const isToday = state === 'today';
+    <ImageBackground
+      source={require("../assets/background_1.png")}
+      style={styles.bg}
+      resizeMode='cover'
+    >
+      <SafeAreaView style={styles.wrapper} edges={['top', 'left', 'right']}>
+        <CalendarList
+          firstDay={1}
+          horizontal
+          pagingEnabled               // 👈 snap per månad
+          markedDates={markedDates}
+          pastScrollRange={12}
+          futureScrollRange={12}
+          showScrollIndicator={false}
+          dayComponent={({ date, state }) => {
+            const dateString = date?.dateString;
+            const status = dateString ? workoutStatusByDate[dateString] : undefined;
+            const isCompleted = status ? status.completed === status.total : false;
+            const isWorkout = dateString ? workoutDates.includes(dateString) : false;
+            const isDisabled = state === 'disabled';
+            const isToday = state === 'today';
 
-          return (
-            <Pressable
-              style={styles.dayCell}
-              onPress={() => dateString && handleDayPress(dateString)}
-              onLongPress={() => dateString && handleDayLongPress(dateString)}
-              disabled={!dateString}
-            >
-              <Text
-                style={[
-                  styles.dayText,
-                  isDisabled && styles.dayTextDisabled,
-                  isToday && styles.dayTextToday,
-                ]}
+            return (
+              <Pressable
+                style={styles.dayCell}
+                onPress={() => dateString && handleDayPress(dateString)}
+                onLongPress={() => dateString && handleDayLongPress(dateString)}
+                disabled={!dateString}
               >
-                {date?.day}
-              </Text>
-              {isWorkout && !isCompleted ? <View style={styles.dayDot} /> : null}
-              {isCompleted ? (
-                <View style={styles.completedBadge}>
-                  <Text style={styles.completedBadgeText}>✓</Text>
-                </View>
-              ) : null}
-            </Pressable>
-          );
-        }}
-        theme={{
-          backgroundColor: '#F3F4F6',
-          calendarBackground: '#F3F4F6',
-          textSectionTitleColor: '#64748B',
-          dayTextColor: '#334155',
-          monthTextColor: '#334155',
-          todayTextColor: '#14B8A6',
-          arrowColor: '#14B8A6',
-          dotColor: '#14B8A6',
-        }}
-      />
-    </SafeAreaView>
+                <Text
+                  style={[
+                    styles.dayText,
+                    isDisabled && styles.dayTextDisabled,
+                    isToday && styles.dayTextToday,
+                  ]}
+                >
+                  {date?.day}
+                </Text>
+                {isWorkout && !isCompleted ? <View style={styles.dayDot} /> : null}
+                {isCompleted ? (
+                  <View style={styles.completedBadge}>
+                    <Text style={styles.completedBadgeText}>✓</Text>
+                  </View>
+                ) : null}
+              </Pressable>
+            );
+          }}
+          theme={{
+            calendarBackground: 'transparent',
+            textSectionTitleColor: '#64748B',
+            dayTextColor: '#334155',
+            monthTextColor: '#334155',
+            todayTextColor: '#14B8A6',
+            arrowColor: '#14B8A6',
+            dotColor: '#14B8A6',
+          }}
+        />
+      </SafeAreaView>
+    </ImageBackground>
   );
 }
 
@@ -217,8 +222,7 @@ const styles = StyleSheet.create({
   wrapper: {
     flex: 1,
     alignContent: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#F3F4F6',
+    justifyContent: 'center'
   },
   dayCell: {
     alignItems: 'center',
@@ -259,4 +263,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '700',
   },
+  bg: {
+    flex: 1
+  }
 });
