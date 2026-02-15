@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Pressable, Modal } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Pressable, Modal, ImageBackground } from 'react-native';
 import Svg, { Polyline, Circle, Text as SvgText } from 'react-native-svg';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Dropdown from '../components/Dropdown';
@@ -226,174 +226,179 @@ export default function ProgressScreen() {
   }, [activeExerciseItem]);
 
   return (
-    <SafeAreaView style={styles.wrapper} edges={['top', 'left', 'right']}>
-      <Text style={styles.title}>Din träningsresa</Text>
+    <ImageBackground
+      source={require('../assets/background_2.png')}
+      style={styles.bg}
+      resizeMode='cover'
+    >
+      <SafeAreaView style={styles.wrapper} edges={['top', 'left', 'right']}>
+        <Text style={styles.title}>Din träningsresa</Text>
 
-      <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.section}>
-          <View style={styles.monthCard}>
-            {isLoadingMonthly ? (
-              <ActivityIndicator color="#0F172A" />
-            ) : (
-              <>
-                <Text style={styles.monthLabel}>Genomförda pass</Text>
-                <Text
-                  style={[
-                    styles.monthValue,
-                    monthlyWorkoutCount >= 10 && styles.monthValueGoal,
-                  ]}
-                >
-                  {monthlyWorkoutCount} pass
-                  {milestoneEmoji ? ` ${milestoneEmoji}` : ''}
-                </Text>
-              </>
-            )}
-          </View>
-        </View>
-        <View style={styles.section}>
-          <Dropdown
-            label="Övning"
-            placeholder={isLoadingExercises ? 'Hämtar övningar...' : 'Välj övning'}
-            items={exercises.map(exercise => ({ data: exercise.name }))}
-            singleSelect
-            value={selectedExercises}
-            onChange={setSelectedExercises}
-          />
-        </View>
-
-        <View style={styles.section}>
-          {!activeExercise ? (
-            <Text style={styles.helper}>Välj en övning för att se din utveckling.</Text>
-          ) : isLoadingProgress ? (
-            <View style={styles.loading}>
-              <ActivityIndicator color="#0F172A" />
-            </View>
-          ) : (
-            <View>
-              <Text style={styles.sectionTitle}>{activeExercise}</Text>
-              {progressSummary ? (
-                <View style={styles.progressCard}>
-                  <View style={styles.progressRow}>
-                    <Text style={styles.progressLabel}>Senaste</Text>
-                    <Text style={styles.progressValue}>{progressSummary.latestWeight} kg</Text>
-                  </View>
-                  <View style={styles.progressRow}>
-                    <Text style={styles.progressLabel}>Bästa</Text>
-                    <Text style={styles.progressValue}>{progressSummary.maxWeight} kg</Text>
-                  </View>
-                  <View style={styles.barTrack}>
-                    <View style={[styles.barFill, { width: `${progressSummary.percent}%` }]} />
-                  </View>
-                  <Pressable
-                    style={styles.graphButton}
-                    onPress={() => setIsGraphOpen(true)}
-                    disabled={progressEntries.length === 0}
-                  >
-                    <Text style={styles.graphButtonText}>Visa graf</Text>
-                  </Pressable>
-                </View>
-              ) : null}
-              {progressEntries.length === 0 ? (
-                <Text style={styles.helper}>Inga set registrerade ännu.</Text>
+        <ScrollView contentContainerStyle={styles.content}>
+          <View style={styles.section}>
+            <View style={styles.monthCard}>
+              {isLoadingMonthly ? (
+                <ActivityIndicator color="#0F172A" />
               ) : (
-                progressEntries.map(entry => (
-                  <View key={`${activeExercise}-${entry.workoutId}-${entry.setNum}`} style={styles.card}>
-                    <Text style={styles.cardDate}>
-                      {formatSwedishDate(entry.workoutDate ?? entry.workoutCreated)} • {entry.workoutName}
-                    </Text>
-                    <Text style={styles.cardDetail}>
-                      {entry.reps} reps • {entry.weightKg ?? 0} kg
-                      {entry.notes ? ` • ${entry.notes}` : ''}
-                    </Text>
-                  </View>
-                ))
+                <>
+                  <Text style={styles.monthLabel}>Genomförda pass</Text>
+                  <Text
+                    style={[
+                      styles.monthValue,
+                      monthlyWorkoutCount >= 10 && styles.monthValueGoal,
+                    ]}
+                  >
+                    {monthlyWorkoutCount} pass
+                    {milestoneEmoji ? ` ${milestoneEmoji}` : ''}
+                  </Text>
+                </>
               )}
             </View>
-          )}
-        </View>
-      </ScrollView>
-      <Modal visible={isGraphOpen} transparent animationType="fade" onRequestClose={() => setIsGraphOpen(false)}>
-        <Pressable style={styles.graphBackdrop} onPress={() => setIsGraphOpen(false)}>
-          <Pressable style={styles.graphModal} onPress={() => null}>
-            <Text style={styles.graphTitle}>{activeExercise} • {graphMetric === 'weight' ? 'Maxvikt' : graphMetric === 'reps' ? 'Max reps' : 'Reps vid maxvikt'}</Text>
-            <View style={styles.graphToggle}>
-              <Pressable
-                style={[styles.graphToggleButton, graphMetric === 'weight' && styles.graphToggleButtonActive]}
-                onPress={() => setGraphMetric('weight')}
-              >
-                <Text style={[styles.graphToggleText, graphMetric === 'weight' && styles.graphToggleTextActive]}>Maxvikt</Text>
-              </Pressable>
-              <Pressable
-                style={[styles.graphToggleButton, graphMetric === 'reps' && styles.graphToggleButtonActive]}
-                onPress={() => setGraphMetric('reps')}
-              >
-                <Text style={[styles.graphToggleText, graphMetric === 'reps' && styles.graphToggleTextActive]}>Max reps</Text>
-              </Pressable>
-              <Pressable
-                style={[styles.graphToggleButton, graphMetric === 'repsAtMaxWeight' && styles.graphToggleButtonActive]}
-                onPress={() => setGraphMetric('repsAtMaxWeight')}
-              >
-                <Text style={[styles.graphToggleText, graphMetric === 'repsAtMaxWeight' && styles.graphToggleTextActive]}>Reps vid max</Text>
-              </Pressable>
-            </View>
-            {graphData.length === 0 ? (
-              <Text style={styles.helper}>Inga set registrerade ännu.</Text>
+          </View>
+          <View style={styles.section}>
+            <Dropdown
+              label="Övning"
+              placeholder={isLoadingExercises ? 'Hämtar övningar...' : 'Välj övning'}
+              items={exercises.map(exercise => ({ data: exercise.name }))}
+              singleSelect
+              value={selectedExercises}
+              onChange={setSelectedExercises}
+            />
+          </View>
+
+          <View style={styles.section}>
+            {!activeExercise ? (
+              <Text style={styles.helper}>Välj en övning för att se din utveckling.</Text>
+            ) : isLoadingProgress ? (
+              <View style={styles.loading}>
+                <ActivityIndicator color="#0F172A" />
+              </View>
             ) : (
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                <View style={[styles.graphChart, { width: graphLayout.width }]}
-                >
-                  <Svg width={graphLayout.width} height={graphLayout.chartHeight}>
-                    <Polyline
-                      points={graphLayout.line}
-                      fill="none"
-                      stroke="#14B8A6"
-                      strokeWidth="3"
-                    />
-                    {graphLayout.points.map(point => (
-                      <Circle
-                        key={point.date}
-                        cx={point.x}
-                        cy={point.y}
-                        r={4}
-                        fill="#14B8A6"
-                      />
-                    ))}
-                    {graphLayout.points.map((point, index) => (
-                      <SvgText
-                        key={`label-${point.date}`}
-                        x={point.x}
-                        y={Math.max(point.y - 8, 10)}
-                        fontSize="10"
-                        fill="#0F172A"
-                        textAnchor="middle"
-                      >
-                        {Math.round(graphData[index]?.value ?? 0)} {graphUnit}
-                      </SvgText>
-                    ))}
-                  </Svg>
-                  <View style={[styles.graphLabelRow, { width: graphLayout.width }]}
-                  >
-                    {graphLayout.points.map(point => (
-                      <Text key={point.date} style={[styles.graphLabel, { width: graphLayout.chartStep }]}
-                      >
-                        {formatSwedishDate(point.date)}
-                      </Text>
-                    ))}
+              <View>
+                <Text style={styles.sectionTitle}>{activeExercise}</Text>
+                {progressSummary ? (
+                  <View style={styles.progressCard}>
+                    <View style={styles.progressRow}>
+                      <Text style={styles.progressLabel}>Senaste</Text>
+                      <Text style={styles.progressValue}>{progressSummary.latestWeight} kg</Text>
+                    </View>
+                    <View style={styles.progressRow}>
+                      <Text style={styles.progressLabel}>Bästa</Text>
+                      <Text style={styles.progressValue}>{progressSummary.maxWeight} kg</Text>
+                    </View>
+                    <View style={styles.barTrack}>
+                      <View style={[styles.barFill, { width: `${progressSummary.percent}%` }]} />
+                    </View>
+                    <Pressable
+                      style={styles.graphButton}
+                      onPress={() => setIsGraphOpen(true)}
+                      disabled={progressEntries.length === 0}
+                    >
+                      <Text style={styles.graphButtonText}>Visa graf</Text>
+                    </Pressable>
                   </View>
-                </View>
-              </ScrollView>
+                ) : null}
+                {progressEntries.length === 0 ? (
+                  <Text style={styles.helper}>Inga set registrerade ännu.</Text>
+                ) : (
+                  progressEntries.map(entry => (
+                    <View key={`${activeExercise}-${entry.workoutId}-${entry.setNum}`} style={styles.card}>
+                      <Text style={styles.cardDate}>
+                        {formatSwedishDate(entry.workoutDate ?? entry.workoutCreated)} • {entry.workoutName}
+                      </Text>
+                      <Text style={styles.cardDetail}>
+                        {entry.reps} reps • {entry.weightKg ?? 0} kg
+                        {entry.notes ? ` • ${entry.notes}` : ''}
+                      </Text>
+                    </View>
+                  ))
+                )}
+              </View>
             )}
+          </View>
+        </ScrollView>
+        <Modal visible={isGraphOpen} transparent animationType="fade" onRequestClose={() => setIsGraphOpen(false)}>
+          <Pressable style={styles.graphBackdrop} onPress={() => setIsGraphOpen(false)}>
+            <Pressable style={styles.graphModal} onPress={() => null}>
+              <Text style={styles.graphTitle}>{activeExercise} • {graphMetric === 'weight' ? 'Maxvikt' : graphMetric === 'reps' ? 'Max reps' : 'Reps vid maxvikt'}</Text>
+              <View style={styles.graphToggle}>
+                <Pressable
+                  style={[styles.graphToggleButton, graphMetric === 'weight' && styles.graphToggleButtonActive]}
+                  onPress={() => setGraphMetric('weight')}
+                >
+                  <Text style={[styles.graphToggleText, graphMetric === 'weight' && styles.graphToggleTextActive]}>Maxvikt</Text>
+                </Pressable>
+                <Pressable
+                  style={[styles.graphToggleButton, graphMetric === 'reps' && styles.graphToggleButtonActive]}
+                  onPress={() => setGraphMetric('reps')}
+                >
+                  <Text style={[styles.graphToggleText, graphMetric === 'reps' && styles.graphToggleTextActive]}>Max reps</Text>
+                </Pressable>
+                <Pressable
+                  style={[styles.graphToggleButton, graphMetric === 'repsAtMaxWeight' && styles.graphToggleButtonActive]}
+                  onPress={() => setGraphMetric('repsAtMaxWeight')}
+                >
+                  <Text style={[styles.graphToggleText, graphMetric === 'repsAtMaxWeight' && styles.graphToggleTextActive]}>Reps vid max</Text>
+                </Pressable>
+              </View>
+              {graphData.length === 0 ? (
+                <Text style={styles.helper}>Inga set registrerade ännu.</Text>
+              ) : (
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                  <View style={[styles.graphChart, { width: graphLayout.width }]}
+                  >
+                    <Svg width={graphLayout.width} height={graphLayout.chartHeight}>
+                      <Polyline
+                        points={graphLayout.line}
+                        fill="none"
+                        stroke="#14B8A6"
+                        strokeWidth="3"
+                      />
+                      {graphLayout.points.map(point => (
+                        <Circle
+                          key={point.date}
+                          cx={point.x}
+                          cy={point.y}
+                          r={4}
+                          fill="#14B8A6"
+                        />
+                      ))}
+                      {graphLayout.points.map((point, index) => (
+                        <SvgText
+                          key={`label-${point.date}`}
+                          x={point.x}
+                          y={Math.max(point.y - 8, 10)}
+                          fontSize="10"
+                          fill="#0F172A"
+                          textAnchor="middle"
+                        >
+                          {Math.round(graphData[index]?.value ?? 0)} {graphUnit}
+                        </SvgText>
+                      ))}
+                    </Svg>
+                    <View style={[styles.graphLabelRow, { width: graphLayout.width }]}
+                    >
+                      {graphLayout.points.map(point => (
+                        <Text key={point.date} style={[styles.graphLabel, { width: graphLayout.chartStep }]}
+                        >
+                          {formatSwedishDate(point.date)}
+                        </Text>
+                      ))}
+                    </View>
+                  </View>
+                </ScrollView>
+              )}
+            </Pressable>
           </Pressable>
-        </Pressable>
-      </Modal>
-    </SafeAreaView>
+        </Modal>
+      </SafeAreaView>
+    </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
   wrapper: {
     flex: 1,
-    backgroundColor: '#F3F4F6',
   },
   title: {
     textAlign: 'center',
@@ -577,4 +582,7 @@ const styles = StyleSheet.create({
     color: '#0F172A',
     fontFamily: 'Poppins_400Regular',
   },
+  bg: {
+    flex: 1
+  }
 });
