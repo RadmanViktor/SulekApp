@@ -325,7 +325,7 @@ export default function CreateWorkoutScreen({ route, navigation }: Props) {
           <Text style={styles.label}>Passnamn</Text>
           <TextInput
             style={styles.input}
-            placeholder="T.ex. Push-pull-pass"
+            placeholder={isCardioOnly ? "T.ex. Springa runt lillpite" : "T.ex. Push-pull-pass"}
             value={name}
             onChangeText={setName}
             placeholderTextColor="#9ca3af"
