@@ -97,20 +97,15 @@ export default function CreateWorkoutScreen({ route, navigation }: Props) {
 
     async function fetchExercises() {
       setIsLoadingExercises(true);
-      console.log('🏋️ Fetching exercises from:', `${apiBaseUrl}/Exercise/Exercises`);
       try {
         const response = await fetch(`${apiBaseUrl}/Exercise/Exercises`);
-        console.log('📡 Response status:', response.status, response.ok);
         if (!response.ok) {
-          console.log('❌ Response not OK');
           return;
         }
         const data: { id: number; name: string }[] = await response.json();
-        console.log('✅ Exercises loaded:', data.length, 'items');
         if (!isMounted) return;
         setExercises(data);
       } catch (error) {
-        console.log('❌ Fetch error:', error);
         if (!isMounted) return;
         setExercises([]);
       } finally {

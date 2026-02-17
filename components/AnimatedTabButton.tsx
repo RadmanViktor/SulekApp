@@ -12,20 +12,15 @@ export default function AnimatedTabButton(props: AnimatedTabButtonProps) {
   const { children, onPress, style } = props;
   const isFocused = props['aria-selected'] || false;
   
-  console.log('AnimatedTabButton render - aria-selected:', props['aria-selected']);
-  
   const scaleValue = useRef(new Animated.Value(isFocused ? 1.2 : 1.0)).current;
 
   useEffect(() => {
-    console.log('🔥 AnimatedTabButton effect running, focused:', isFocused);
     Animated.spring(scaleValue, {
       toValue: isFocused ? 1.2 : 1.0,
       useNativeDriver: true,
       friction: 8,
       tension: 15,
-    }).start(() => {
-      console.log('✅ Animation completed to:', isFocused ? 1.2 : 1.0);
-    });
+    }).start();
   }, [isFocused]);
 
   return (

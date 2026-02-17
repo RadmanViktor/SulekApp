@@ -75,7 +75,6 @@ export default function CardioDetailScreen({ route, navigation }: Props) {
   const workoutId = route.params.workoutId;
   const date = route.params.date;
   const screenWidth = Dimensions.get('window').width;
-  console.log('workoutId: ', workoutId);
 
   const headerTitle = workout?.name ?? 'Cardio';
 
@@ -90,7 +89,6 @@ export default function CardioDetailScreen({ route, navigation }: Props) {
       }
 
       const data: WorkoutResponse = await response.json();
-      console.log(data);
       setWorkout(data.workout ?? null);
     } catch (error) {
       Alert.alert('Nätverksfel', 'Kunde inte hämta pass.');
