@@ -287,18 +287,37 @@ export default function WorkoutDetailScreen({ route, navigation }: Props) {
               const draft = setDrafts[key];
 
               return (
-                <View key={key} style={styles.exerciseCard}>
-                  <Text style={styles.exerciseName}>{exercise.name}</Text>
+                <View key={key} style={[
+                  styles.exerciseCard,
+                  workout.completed && styles.exerciseCardCompleted
+                ]}>
+                  <View style={styles.exerciseHeader}>
+                    <Ionicons name="barbell-outline" size={20} color="#14B8A6" />
+                    <Text style={styles.exerciseName}>{exercise.name}</Text>
+                  </View>
 
                   {(exercise.sets ?? []).length > 0 ? (
                     <View style={styles.setList}>
                         {(exercise.sets ?? []).map(set => (
-                          <View key={`${exercise.name}-${set.setNum}`} style={styles.setRow}>
-                            <Text style={styles.setLabel}>Set {set.setNum}</Text>
-                            <Text style={styles.setValue}>{set.reps} reps</Text>
-                            <Text style={styles.setValue}>• {set.weightKg ?? 0} kg</Text>
+                          <View key={`${exercise.name}-${set.setNum}`} style={[
+                            styles.setRow,
+                            workout.completed && styles.setRowCompleted
+                          ]}>
+                            <View style={styles.setBadge}>
+                              <Text style={styles.setBadgeText}>Set {set.setNum}</Text>
+                            </View>
+                            <View style={styles.setInfo}>
+                              <View style={styles.setDetail}>
+                                <Ionicons name="repeat-outline" size={16} color="#14B8A6" />
+                                <Text style={styles.setDetailText}>{set.reps} reps</Text>
+                              </View>
+                              <View style={styles.setDetail}>
+                                <Ionicons name="barbell-outline" size={16} color="#14B8A6" />
+                                <Text style={styles.setDetailText}>{set.weightKg ?? 0} kg</Text>
+                              </View>
+                            </View>
                             {set.notes ? (
-                              <Text style={styles.setNote}>• {set.notes}</Text>
+                              <Text style={styles.setNoteStyled}>{set.notes}</Text>
                             ) : null}
                           </View>
                         ))}
@@ -448,22 +467,90 @@ const styles = StyleSheet.create({
   exerciseCard: {
     marginTop: 16,
     paddingTop: 12,
+    paddingBottom: 12,
+    paddingHorizontal: 12,
     borderTopWidth: 1,
     borderTopColor: '#E2E8F0',
   },
+  exerciseCardCompleted: {
+    backgroundColor: '#F0FDFA',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#99F6E4',
+    borderTopWidth: 1,
+    shadowColor: '#14B8A6',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+    marginBottom: 8,
+  },
+  exerciseHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
+  },
   exerciseName: {
-    fontSize: 16,
+    fontSize: 18,
+    fontWeight: '600',
     color: '#0F172A',
     fontFamily: 'Poppins_400Regular',
   },
   setList: {
     marginTop: 8,
+    gap: 8,
   },
   setRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: 'column',
     marginBottom: 4,
     gap: 6,
+  },
+  setRowCompleted: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  setBadge: {
+    backgroundColor: '#14B8A6',
+    borderRadius: 6,
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    alignSelf: 'flex-start',
+  },
+  setBadgeText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    fontFamily: 'Poppins_400Regular',
+  },
+  setInfo: {
+    flexDirection: 'row',
+    gap: 16,
+  },
+  setDetail: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  setDetailText: {
+    fontSize: 14,
+    color: '#0F172A',
+    fontFamily: 'Poppins_400Regular',
+  },
+  setNoteStyled: {
+    fontSize: 13,
+    color: '#64748B',
+    fontStyle: 'italic',
+    marginTop: 4,
+    fontFamily: 'Poppins_400Regular',
   },
   setLabel: {
     fontSize: 13,
@@ -535,5 +622,21 @@ const styles = StyleSheet.create({
   },
   completeButtonTextDone: {
     color: '#F8FAFC',
+  },
+  completionBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#D1FAE5',
+    borderRadius: 12,
+    padding: 12,
+    marginTop: 16,
+    gap: 8,
+  },
+  completionText: {
+    fontSize: 16,
+    color: '#059669',
+    fontFamily: 'Poppins_400Regular',
+    fontWeight: '600',
   },
 });
