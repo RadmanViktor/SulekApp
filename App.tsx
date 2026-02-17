@@ -14,6 +14,7 @@ import ProgressScreen from './screens/ProgressScreen';
 import WorkoutDetailScreen from './screens/WorkoutDetailScreen';
 import CardioDetailScreen from './screens/CardioDetailScreen';
 import { RootTabParamList } from './navigations/types';
+import AnimatedTabButton from './components/AnimatedTabButton';
 
 const Tab = createBottomTabNavigator<RootTabParamList>();
 
@@ -70,6 +71,7 @@ export default function App() {
 
               return <Ionicons name={iconName} size={size + 4} color={color} />;
             },
+            tabBarButton: (props) => <AnimatedTabButton {...props} />,
           })}
         >
           <Tab.Screen name="HomeScreen" component={HomeScreen} options={{title: 'Hem'}}/>
