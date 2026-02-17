@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TextInput, Pressable, Alert, ActivityIndicator, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TextInput, Pressable, Alert, ActivityIndicator, Dimensions, ImageBackground } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
@@ -249,6 +249,11 @@ export default function WorkoutDetailScreen({ route, navigation }: Props) {
   };
 
   return (
+    <ImageBackground
+      source={require('../assets/background_1.png')}
+      style={styles.bg}
+      resizeMode='cover'
+    >
     <SafeAreaView style={styles.wrapper} edges={['top', 'left', 'right']}>
       {showConfetti ? (
         <View style={styles.confettiContainer} pointerEvents="none">
@@ -378,13 +383,17 @@ export default function WorkoutDetailScreen({ route, navigation }: Props) {
         )}
       </ScrollView>
     </SafeAreaView>
+    </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
+  bg: {
+    flex: 1,
+  },
   wrapper: {
     flex: 1,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: 'transparent',
   },
   confettiContainer: {
     ...StyleSheet.absoluteFillObject,

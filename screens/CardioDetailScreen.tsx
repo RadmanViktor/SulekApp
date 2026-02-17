@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, TextInput, Pressable, Alert, ActivityIndicator, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TextInput, Pressable, Alert, ActivityIndicator, Dimensions, ImageBackground } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
@@ -68,6 +68,7 @@ export default function CardioDetailScreen({ route, navigation }: Props) {
   const [isCompleting, setIsCompleting] = useState(false);
   const [confettiKey, setConfettiKey] = useState(0);
   const [showConfetti, setShowConfetti] = useState(false);
+  const [completedRoute, setCompletedRoute] = useState<Coordinate[]>([]);
   const cardioInterval = useRef<ReturnType<typeof setInterval> | null>(null);
   const cardioLocationSub = useRef<Location.LocationSubscription | null>(null);
   const cardioLocationInit = useRef<boolean>(false);
@@ -388,6 +389,11 @@ export default function CardioDetailScreen({ route, navigation }: Props) {
         return;
       }
 
+      // Save route before resetting
+      if (cardioDraft.route && cardioDraft.route.length > 0) {
+        setCompletedRoute(cardioDraft.route);
+      }
+
       await loadWorkout();
       // Reset tracking state after completion
       setCardioDraft(prev => ({
@@ -408,7 +414,12 @@ export default function CardioDetailScreen({ route, navigation }: Props) {
   };
 
   return (
-    <SafeAreaView style={styles.wrapper}>
+    <ImageBackground
+      source={require('../assets/background_2.png')}
+      style={styles.bg}
+      resizeMode='cover'
+    >
+      <SafeAreaView style={styles.wrapper}>
       {showConfetti ? (
         <View style={styles.confettiContainer} pointerEvents="none">
           <ConfettiCannon
@@ -434,7 +445,65 @@ export default function CardioDetailScreen({ route, navigation }: Props) {
         ) : (
           <View style={styles.workoutCard}>
             {workout.notes ? <Text style={styles.workoutNotes}>{workout.notes}</Text> : null}
-            <View style={styles.cardioCard}>
+
+            {workout.completed && completedRoute.length > 0 && (
+              <View style={styles.completedMapContainer}>
+                <MapView
+                  style={styles.completedMap}
+                  initialRegion={{
+                    latitude: completedRoute[Math.floor(completedRoute.length / 2)].latitude,
+                    longitude: completedRoute[Math.floor(completedRoute.length / 2)].longitude,
+                    latitudeDelta: 0.01,
+                    longitudeDelta: 0.01,
+                  }}
+                  scrollEnabled={false}
+                  zoomEnabled={false}
+                  pitchEnabled={false}
+                  rotateEnabled={false}
+                >
+                  <Polyline coordinates={completedRoute} strokeColor="#14B8A6" strokeWidth={4} />
+                </MapView>
+              </View>
+            )}
+
+            {workout.completed && (
+              <View style={styles.statsGrid}>
+                <View style={styles.statCard}>
+                  <Ionicons name="time-outline" size={28} color="#14B8A6" />
+                  <Text style={styles.statValue}>{workout.cardioTimeMinutes || 0}</Text>
+                  <Text style={styles.statLabel}>Minuter</Text>
+                </View>
+                <View style={styles.statCard}>
+                  <Ionicons name="map-outline" size={28} color="#14B8A6" />
+                  <Text style={styles.statValue}>{workout.cardioDistanceKm || 0}</Text>
+                  <Text style={styles.statLabel}>Kilometer</Text>
+                </View>
+                <View style={styles.statCard}>
+                  <Ionicons name="flame-outline" size={28} color="#14B8A6" />
+                  <Text style={styles.statValue}>{workout.cardioCalories || 0}</Text>
+                  <Text style={styles.statLabel}>Kalorier</Text>
+                </View>
+                <View style={styles.statCard}>
+                  <Ionicons name="speedometer-outline" size={28} color="#14B8A6" />
+                  <Text style={styles.statValue}>
+                    {workout.cardioTimeMinutes && workout.cardioDistanceKm && workout.cardioDistanceKm > 0
+                      ? (workout.cardioTimeMinutes / workout.cardioDistanceKm).toFixed(1)
+                      : '0.0'}
+                  </Text>
+                  <Text style={styles.statLabel}>Min/km</Text>
+                </View>
+              </View>
+            )}
+
+            {workout.completed && (
+              <View style={styles.completionBadge}>
+                <Ionicons name="checkmark-circle" size={24} color="#10B981" />
+                <Text style={styles.completionText}>Pass klart!</Text>
+              </View>
+            )}
+
+            {!workout.completed && (
+              <View style={styles.cardioCard}>
               <View style={styles.cardioHeader}>
                 <Text style={styles.cardioTitle}>Cardio</Text>
                 {(workout.cardioTimeMinutes != null || workout.cardioDistanceKm != null || workout.cardioCalories != null) ? (
@@ -555,6 +624,8 @@ export default function CardioDetailScreen({ route, navigation }: Props) {
                 </>
               )}
             </View>
+            )}
+
             {!workout.completed && (
               <Pressable
                 style={[
@@ -577,13 +648,17 @@ export default function CardioDetailScreen({ route, navigation }: Props) {
         )}
       </ScrollView>
     </SafeAreaView>
+    </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
+  bg: {
+    flex: 1,
+  },
   wrapper: {
     flex: 1,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: 'transparent',
   },
   confettiContainer: {
     ...StyleSheet.absoluteFillObject,
@@ -781,5 +856,72 @@ const styles = StyleSheet.create({
   },
   completeButtonDisabled: {
     opacity: 0.6,
+  },
+  completedMapContainer: {
+    marginTop: 16,
+    marginBottom: 16,
+    borderRadius: 16,
+    overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: '#14B8A6',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  completedMap: {
+    height: 450,
+    width: '100%',
+  },
+  statsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginTop: 16,
+  },
+  statCard: {
+    flex: 1,
+    minWidth: '45%',
+    backgroundColor: '#F0FDFA',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#99F6E4',
+    shadowColor: '#14B8A6',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  statValue: {
+    fontSize: 28,
+    fontWeight: '600',
+    color: '#0F172A',
+    fontFamily: 'Poppins_400Regular',
+    marginTop: 8,
+  },
+  statLabel: {
+    fontSize: 12,
+    color: '#64748B',
+    fontFamily: 'Poppins_400Regular',
+    marginTop: 4,
+  },
+  completionBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#D1FAE5',
+    borderRadius: 12,
+    padding: 12,
+    marginTop: 16,
+    gap: 8,
+  },
+  completionText: {
+    fontSize: 16,
+    color: '#059669',
+    fontFamily: 'Poppins_400Regular',
+    fontWeight: '600',
   },
 });
