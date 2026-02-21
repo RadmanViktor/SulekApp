@@ -115,7 +115,7 @@ export default function AuthScreen() {
             </View>
 
             {!isLoginMode ? (
-              <Text style={styles.hint}>Losenordet maste vara minst 6 tecken.</Text>
+              <Text style={styles.hint}>Lösenordet måste vara minst 6 tecken.</Text>
             ) : (
               <Text style={styles.hintMuted}>Glömt lösenord?</Text>
             )}
@@ -134,7 +134,7 @@ export default function AuthScreen() {
           </Pressable>
 
           <View style={styles.bottomArea}>
-            <Text style={styles.modeTitle}>{isLoginMode ? 'Ny har?' : 'Har du redan konto?'}</Text>
+            <Text style={styles.modeTitle}>{isLoginMode ? 'Ny här?' : 'Har du redan ett konto?'}</Text>
             <Pressable
               style={styles.secondaryButton}
               onPress={() => setIsLoginMode(prev => !prev)}
