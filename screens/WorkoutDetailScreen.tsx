@@ -8,6 +8,7 @@ import { toLocalDateString } from '../utils/date';
 import ConfettiCannon from 'react-native-confetti-cannon';
 import { Ionicons } from '@expo/vector-icons';
 import { getApiBaseUrl } from '../config/apiConfig';
+import { useAuth } from '../contexts/AuthContext';
 
 type Props = BottomTabScreenProps<RootTabParamList, 'WorkoutDetailScreen'>;
 
@@ -52,6 +53,7 @@ type SetDraft = {
 const apiBaseUrl = getApiBaseUrl();
 
 export default function WorkoutDetailScreen({ route, navigation }: Props) {
+  const { authFetch } = useAuth();
   const [workout, setWorkout] = useState<WorkoutDto | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [setDrafts, setSetDrafts] = useState<Record<string, SetDraft>>({});
@@ -68,7 +70,7 @@ export default function WorkoutDetailScreen({ route, navigation }: Props) {
   const loadWorkout = useCallback(async () => {
     setIsLoading(true);
     try {
-      const response = await fetch(`${apiBaseUrl}/Workout/Workouts/${workoutId}`);
+      const response = await authFetch(`${apiBaseUrl}/Workout/Workouts/${workoutId}`);
       if (!response.ok) {
         setWorkout(null);
         return;
@@ -80,7 +82,7 @@ export default function WorkoutDetailScreen({ route, navigation }: Props) {
     } finally {
       setIsLoading(false);
     }
-  }, [workoutId]);
+  }, [authFetch, workoutId]);
 
   useEffect(() => {
     loadWorkout();
@@ -187,7 +189,7 @@ export default function WorkoutDetailScreen({ route, navigation }: Props) {
 
     handleDraftChange(key, { isSaving: true });
     try {
-      const response = await fetch(`${apiBaseUrl}/Workout/CreateSet`, {
+      const response = await authFetch(`${apiBaseUrl}/Workout/CreateSet`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -222,7 +224,7 @@ export default function WorkoutDetailScreen({ route, navigation }: Props) {
 
     setIsCompleting(true);
     try {
-      const response = await fetch(`${apiBaseUrl}/Workout/Workouts/${workoutId}/Complete`, {
+      const response = await authFetch(`${apiBaseUrl}/Workout/Workouts/${workoutId}/Complete`, {
         method: 'PUT',
       });
 

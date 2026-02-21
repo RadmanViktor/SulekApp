@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Dropdown from '../components/Dropdown';
 import { useFocusEffect } from '@react-navigation/native';
 import { getApiBaseUrl } from '../config/apiConfig';
+import { useAuth } from '../contexts/AuthContext';
 type ExerciseItem = { id: number; name: string };
 type ProgressEntry = {
   workoutId: number;
@@ -20,6 +21,7 @@ type ProgressEntry = {
 const apiBaseUrl = getApiBaseUrl();
 
 export default function ProgressScreen() {
+  const { authFetch } = useAuth();
   const [selectedExercises, setSelectedExercises] = useState<string[]>([]);
   const [exercises, setExercises] = useState<ExerciseItem[]>([]);
   const [progressEntries, setProgressEntries] = useState<ProgressEntry[]>([]);
@@ -134,7 +136,7 @@ export default function ProgressScreen() {
   const fetchMonthlyCount = useCallback(async () => {
     setIsLoadingMonthly(true);
     try {
-      const response = await fetch(`${apiBaseUrl}/Workout/Workouts`);
+      const response = await authFetch(`${apiBaseUrl}/Workout/Workouts`);
       if (!response.ok) return;
       const data: { workout?: { workoutDate?: string } }[] = await response.json();
       const now = new Date();
@@ -154,7 +156,7 @@ export default function ProgressScreen() {
     } finally {
       setIsLoadingMonthly(false);
     }
-  }, []);
+  }, [authFetch]);
 
   useEffect(() => {
     let isMounted = true;
@@ -162,7 +164,7 @@ export default function ProgressScreen() {
     async function fetchExercises() {
       setIsLoadingExercises(true);
       try {
-        const response = await fetch(`${apiBaseUrl}/Exercise/Exercises`);
+        const response = await authFetch(`${apiBaseUrl}/Exercise/Exercises`);
         if (!response.ok) return;
         const data: ExerciseItem[] = await response.json();
         if (!isMounted) return;
@@ -181,7 +183,7 @@ export default function ProgressScreen() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [authFetch]);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -202,7 +204,7 @@ export default function ProgressScreen() {
       }
       setIsLoadingProgress(true);
       try {
-        const response = await fetch(
+        const response = await authFetch(
           `${apiBaseUrl}/Workout/Progress?exerciseId=${activeExerciseItem.id}&sortBy=weight`
         );
         if (!response.ok) return;
@@ -223,7 +225,7 @@ export default function ProgressScreen() {
     return () => {
       isMounted = false;
     };
-  }, [activeExerciseItem]);
+  }, [activeExerciseItem, authFetch]);
 
   return (
     <ImageBackground

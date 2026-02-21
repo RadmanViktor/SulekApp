@@ -1,7 +1,7 @@
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 
-const LOCALHOST_URL = 'http://localhost:5026';
+const LOCALHOST_URL = 'http://0.0.0.0:5026';
 const DEVICE_URL = 'http://192.168.68.102:5026';
 
 /**
@@ -16,6 +16,7 @@ export const getApiBaseUrl = (): string => {
   const hostname = Constants.expoConfig?.hostUri?.split(':')[0];
 
   if (Constants.deviceName === 'iPhone 17 Pro') {
+    console.log("Running in IOS Simulator")
     return LOCALHOST_URL;
   }
 
@@ -24,6 +25,7 @@ export const getApiBaseUrl = (): string => {
     return DEVICE_URL;
   }
 
+  console.log("Running in IOS Simulator")
   return LOCALHOST_URL;
 };
 

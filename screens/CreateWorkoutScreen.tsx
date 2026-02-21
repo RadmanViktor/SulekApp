@@ -11,10 +11,12 @@ import { useFocusEffect } from '@react-navigation/native';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { toLocalDateString } from '../utils/date';
 import { getApiBaseUrl } from '../config/apiConfig';
+import { useAuth } from '../contexts/AuthContext';
 
 type Props = BottomTabScreenProps<RootTabParamList, "CreateWorkoutScreen">;
 
 export default function CreateWorkoutScreen({ route, navigation }: Props) {
+  const { authFetch } = useAuth();
   const [name, setName] = useState('');
   const [date, setDate] = useState<Date>(() => paramDate ?? new Date());
   const [isSaving, setIsSaving] = useState(false);
@@ -98,11 +100,15 @@ export default function CreateWorkoutScreen({ route, navigation }: Props) {
     async function fetchExercises() {
       setIsLoadingExercises(true);
       try {
-        const response = await fetch(`${apiBaseUrl}/Exercise/Exercises`);
+        const response = await authFetch(`${apiBaseUrl}/Exercise/Exercises`);
+        console.log("Fetching workouts!");
         if (!response.ok) {
-          return;
+
+          console.log("Fetching workouts failed!");
+          return response;
         }
         const data: { id: number; name: string }[] = await response.json();
+        console.log(data)
         if (!isMounted) return;
         setExercises(data);
       } catch (error) {
@@ -119,14 +125,14 @@ export default function CreateWorkoutScreen({ route, navigation }: Props) {
     return () => {
       isMounted = false;
     };
-  }, [apiBaseUrl]);
+  }, [apiBaseUrl, authFetch]);
 
   useEffect(() => {
     let isMounted = true;
 
     async function fetchWorkoutDates() {
       try {
-        const response = await fetch(`${apiBaseUrl}/Workout/Workouts`);
+        const response = await authFetch(`${apiBaseUrl}/Workout/Workouts`);
         if (!response.ok) {
           if (isMounted) setOccupiedDates(new Set());
           return;
@@ -153,11 +159,11 @@ export default function CreateWorkoutScreen({ route, navigation }: Props) {
     return () => {
       isMounted = false;
     };
-  }, [apiBaseUrl]);
+  }, [apiBaseUrl, authFetch]);
 
   const handleCreateExercise = async (name: string) => {
     try {
-      const response = await fetch(`${apiBaseUrl}/Exercise/CreateExercise`, {
+      const response = await authFetch(`${apiBaseUrl}/Exercise/CreateExercise`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name }),
@@ -243,7 +249,7 @@ export default function CreateWorkoutScreen({ route, navigation }: Props) {
 
     try {
       const selectedDate = toLocalDateString(date);
-      const existingResponse = await fetch(`${apiBaseUrl}/Workout/Workouts`);
+      const existingResponse = await authFetch(`${apiBaseUrl}/Workout/Workouts`);
       if (existingResponse.ok) {
         const existingData: { workout?: { workoutDate?: string } }[] = await existingResponse.json();
         const existingForDate = existingData
@@ -268,7 +274,7 @@ export default function CreateWorkoutScreen({ route, navigation }: Props) {
         workoutExerciseDtos,
       };
 
-      const response = await fetch(`${apiBaseUrl}/Workout/CreateWorkout`, {
+      const response = await authFetch(`${apiBaseUrl}/Workout/CreateWorkout`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),

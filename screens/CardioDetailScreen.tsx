@@ -10,6 +10,7 @@ import { Ionicons } from '@expo/vector-icons';
 import MapView, { Polyline } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { getApiBaseUrl } from '../config/apiConfig';
+import { useAuth } from '../contexts/AuthContext';
 
 type Props = BottomTabScreenProps<RootTabParamList, 'CardioDetailScreen'>;
 
@@ -53,6 +54,7 @@ type WorkoutResponse = {
 const apiBaseUrl = getApiBaseUrl();
 
 export default function CardioDetailScreen({ route, navigation }: Props) {
+  const { authFetch } = useAuth();
   const [workout, setWorkout] = useState<WorkoutDto | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [cardioDraft, setCardioDraft] = useState<CardioDraft>({
@@ -81,7 +83,7 @@ export default function CardioDetailScreen({ route, navigation }: Props) {
   const loadWorkout = useCallback(async () => {
     setIsLoading(true);
     try {
-      const response = await fetch(`${apiBaseUrl}/Workout/Workouts/${workoutId}`);
+      const response = await authFetch(`${apiBaseUrl}/Workout/Workouts/${workoutId}`);
       if (!response.ok) {
         Alert.alert('Kunde inte ladda pass', 'Kontrollera att API:t är igång.');
         setWorkout(null);
@@ -96,7 +98,7 @@ export default function CardioDetailScreen({ route, navigation }: Props) {
     } finally {
       setIsLoading(false);
     }
-  }, [workoutId]);
+  }, [authFetch, workoutId]);
 
   useFocusEffect(
     useCallback(() => {
@@ -344,7 +346,7 @@ export default function CardioDetailScreen({ route, navigation }: Props) {
 
     handleCardioDraftChange({ isSaving: true });
     try {
-      const response = await fetch(`${apiBaseUrl}/Workout/Workouts/${workoutId}/Cardio`, {
+      const response = await authFetch(`${apiBaseUrl}/Workout/Workouts/${workoutId}/Cardio`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -377,7 +379,7 @@ export default function CardioDetailScreen({ route, navigation }: Props) {
 
     setIsCompleting(true);
     try {
-      const response = await fetch(`${apiBaseUrl}/Workout/Workouts/${workoutId}/Complete`, {
+      const response = await authFetch(`${apiBaseUrl}/Workout/Workouts/${workoutId}/Complete`, {
         method: 'PUT',
       });
 

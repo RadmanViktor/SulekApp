@@ -8,11 +8,13 @@ import { RootTabParamList } from '../navigations/types';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { toLocalDateString } from '../utils/date';
 import { getApiBaseUrl } from '../config/apiConfig';
+import { useAuth } from '../contexts/AuthContext';
 
 type CalenderNav = BottomTabNavigationProp<RootTabParamList, "CalenderScreen">;
 
 export default function CalendarScreen() {
   const navigation = useNavigation<CalenderNav>();
+  const { authFetch } = useAuth();
   const insets = useSafeAreaInsets();
   const [workoutDates, setWorkoutDates] = useState<string[]>([]);
   const [workoutByDate, setWorkoutByDate] = useState<Record<string, number>>({});
@@ -22,7 +24,7 @@ export default function CalendarScreen() {
 
   const fetchWorkouts = useCallback(async () => {
     try {
-      const response = await fetch(`${apiBaseUrl}/Workout/Workouts`);
+      const response = await authFetch(`${apiBaseUrl}/Workout/Workouts`);
       if (!response.ok) return;
       const data: { workout?: { id?: number; workoutDate?: string; completed?: boolean; deleted?: boolean; exercises?: { name: string }[] } }[] = await response.json();
 
@@ -64,7 +66,7 @@ export default function CalendarScreen() {
       setWorkoutStatusByDate({});
       setWorkoutIsCardioByDate({});
     }
-  }, [apiBaseUrl]);
+  }, [apiBaseUrl, authFetch]);
 
   useEffect(() => {
     fetchWorkouts();
@@ -91,7 +93,7 @@ export default function CalendarScreen() {
             style: 'destructive',
             onPress: async () => {
               try {
-                const response = await fetch(`${apiBaseUrl}/Workout/Workouts/${workoutId}/Delete`, {
+                const response = await authFetch(`${apiBaseUrl}/Workout/Workouts/${workoutId}/Delete`, {
                   method: 'PUT',
                 });
                 if (!response.ok) {

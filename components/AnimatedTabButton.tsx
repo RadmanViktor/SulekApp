@@ -3,7 +3,7 @@ import { Animated, Pressable } from 'react-native';
 
 interface AnimatedTabButtonProps {
   children: React.ReactNode;
-  onPress?: () => void;
+  onPress?: (...args: any[]) => void;
   'aria-selected'?: boolean;
   [key: string]: any;
 }

@@ -1,10 +1,13 @@
 import React, { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, Image, TextInput } from 'react-native';
+import { View, Text, StyleSheet, Image, TextInput, Pressable, ActivityIndicator, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function ProfileScreen() {
+  const { user, logout } = useAuth();
   const [weeklyGoal, setWeeklyGoal] = useState('3');
   const [mainFocus, setMainFocus] = useState('Hypertrofi');
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const subtitle = useMemo(() => {
     const goalText = weeklyGoal.trim() ? `${weeklyGoal.trim()} pass/vecka` : 'Inget mål satt';
@@ -14,51 +17,70 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView style={styles.wrapper} edges={['top', 'left', 'right']}>
-      <View style={styles.header}>
-        <Image
-          source={{ uri: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=320&q=80' }}
-          style={styles.avatar}
-        />
-        <Text style={styles.name}>Alex Andersson</Text>
-        <Text style={styles.subtitle}>{subtitle}</Text>
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Mina mål</Text>
-        <View style={styles.card}>
-          <Text style={styles.cardLabel}>Veckomål</Text>
-          <TextInput
-            style={styles.input}
-            value={weeklyGoal}
-            onChangeText={setWeeklyGoal}
-            keyboardType="number-pad"
-            placeholder="Antal pass"
-            placeholderTextColor="#94A3B8"
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <View style={styles.header}>
+          <Image
+            source={{ uri: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=320&q=80' }}
+            style={styles.avatar}
           />
+          <Text style={styles.name}>{user?.name ?? 'Anvandare'}</Text>
+          <Text style={styles.email}>{user?.email ?? ''}</Text>
+          <Text style={styles.subtitle}>{subtitle}</Text>
         </View>
-        <View style={styles.card}>
-          <Text style={styles.cardLabel}>Primärt fokus</Text>
-          <TextInput
-            style={styles.input}
-            value={mainFocus}
-            onChangeText={setMainFocus}
-            placeholder="T.ex. styrka"
-            placeholderTextColor="#94A3B8"
-          />
-        </View>
-      </View>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Senaste aktivitet</Text>
-        <View style={styles.card}>
-          <Text style={styles.cardLabel}>Push-pass</Text>
-          <Text style={styles.cardValue}>21 jan 2026</Text>
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Mina mål</Text>
+          <View style={styles.card}>
+            <Text style={styles.cardLabel}>Veckomål</Text>
+            <TextInput
+              style={styles.input}
+              value={weeklyGoal}
+              onChangeText={setWeeklyGoal}
+              keyboardType="number-pad"
+              placeholder="Antal pass"
+              placeholderTextColor="#94A3B8"
+            />
+          </View>
+          <View style={styles.card}>
+            <Text style={styles.cardLabel}>Primärt fokus</Text>
+            <TextInput
+              style={styles.input}
+              value={mainFocus}
+              onChangeText={setMainFocus}
+              placeholder="T.ex. styrka"
+              placeholderTextColor="#94A3B8"
+            />
+          </View>
         </View>
-        <View style={styles.card}>
-          <Text style={styles.cardLabel}>Pull-pass</Text>
-          <Text style={styles.cardValue}>19 jan 2026</Text>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Senaste aktivitet</Text>
+          <View style={styles.card}>
+            <Text style={styles.cardLabel}>Push-pass</Text>
+            <Text style={styles.cardValue}>21 jan 2026</Text>
+          </View>
+          <View style={styles.card}>
+            <Text style={styles.cardLabel}>Pull-pass</Text>
+            <Text style={styles.cardValue}>19 jan 2026</Text>
+          </View>
         </View>
-      </View>
+
+        <Pressable
+          style={[styles.logoutButton, isLoggingOut && styles.logoutButtonDisabled]}
+          onPress={async () => {
+            if (isLoggingOut) return;
+            setIsLoggingOut(true);
+            try {
+              await logout();
+            } finally {
+              setIsLoggingOut(false);
+            }
+          }}
+          disabled={isLoggingOut}
+        >
+          {isLoggingOut ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.logoutButtonText}>Logga ut</Text>}
+        </Pressable>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -68,6 +90,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F3F4F6',
     paddingHorizontal: 20,
+  },
+  content: {
+    paddingBottom: 40,
   },
   header: {
     alignItems: 'center',
@@ -90,6 +115,12 @@ const styles = StyleSheet.create({
     marginTop: 6,
     fontSize: 14,
     color: '#64748B',
+    fontFamily: 'Poppins_400Regular',
+  },
+  email: {
+    marginTop: 2,
+    fontSize: 13,
+    color: '#475569',
     fontFamily: 'Poppins_400Regular',
   },
   section: {
@@ -134,5 +165,24 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E2E8F0',
     backgroundColor: '#F8FAFC',
+  },
+  logoutButton: {
+    marginTop: 24,
+    alignSelf: 'center',
+    minWidth: 150,
+    borderRadius: 999,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#0F766E',
+  },
+  logoutButtonDisabled: {
+    opacity: 0.7,
+  },
+  logoutButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontFamily: 'Poppins_400Regular',
   },
 });

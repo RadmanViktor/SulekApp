@@ -6,6 +6,7 @@ import { RootTabParamList } from '../navigations/types';
 import ProfileButton from '../components/ProfileButton';
 import { toLocalDateString } from '../utils/date';
 import { getApiBaseUrl } from '../config/apiConfig';
+import { useAuth } from '../contexts/AuthContext';
 
 type HomeNav = BottomTabNavigationProp<RootTabParamList, 'HomeScreen'>;
 
@@ -19,6 +20,7 @@ type WorkoutSummary = {
 
 export default function HomeScreen() {
   const navigation = useNavigation<HomeNav>();
+  const { authFetch } = useAuth();
   const [todaysWorkout, setTodaysWorkout] = useState<WorkoutSummary | null>(null);
   const [nextWorkout, setNextWorkout] = useState<{ name: string; workoutDate: string } | null>(null);
   const apiBaseUrl = getApiBaseUrl();
@@ -30,7 +32,7 @@ export default function HomeScreen() {
 
       async function fetchTodaysWorkout() {
         try {
-          const response = await fetch(`${apiBaseUrl}/Workout/Workouts`);
+          const response = await authFetch(`${apiBaseUrl}/Workout/Workouts`);
           if (!response.ok) return;
           const data: { workout?: { id?: number; name?: string; workoutDate?: string; completed?: boolean; deleted?: boolean; exercises?: { name: string }[] } }[] = await response.json();
           const workout = data
@@ -80,7 +82,7 @@ export default function HomeScreen() {
       return () => {
         isActive = false;
       };
-    }, [apiBaseUrl, todayDate])
+    }, [apiBaseUrl, authFetch, todayDate])
   );
   const isCompletedWithNoNext = todaysWorkout?.completed && !nextWorkout;
   let intoText = () => {
