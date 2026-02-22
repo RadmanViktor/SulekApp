@@ -14,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
+import { colors } from '../theme/colors';
 
 export default function AuthScreen() {
   const { login, register } = useAuth();
@@ -56,7 +57,7 @@ export default function AuthScreen() {
 
   return (
     <LinearGradient
-      colors={['#1EC9B5', '#109D90', '#0E766E']}
+      colors={[colors.brand.highlight, colors.brand.primary, colors.brand.deep]}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
       style={styles.gradientBg}
@@ -67,9 +68,6 @@ export default function AuthScreen() {
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
           <View style={styles.topArea}>
-            <View style={styles.logoCircle}>
-              <Ionicons name="fitness-outline" size={38} color="#FFFFFF" />
-            </View>
             <Text style={styles.title}>Välkommen till Sulek</Text>
             <Text style={styles.subtitle}>{subtitle}</Text>
           </View>
@@ -177,9 +175,9 @@ const styles = StyleSheet.create({
     borderRadius: 46,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.16)',
+    backgroundColor: colors.brand.soft,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.4)',
+    borderColor: colors.border,
   },
   title: {
     marginTop: 20,

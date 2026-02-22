@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, Image, TextInput, Pressable, ActivityIndicator, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../contexts/AuthContext';
+import { colors } from '../theme/colors';
 
 export default function ProfileScreen() {
   const { user, logout } = useAuth();
@@ -88,7 +89,7 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   wrapper: {
     flex: 1,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.brand.background,
     paddingHorizontal: 20,
   },
   content: {
@@ -175,7 +176,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#0F766E',
+    backgroundColor: colors.brand.primary,
   },
   logoutButtonDisabled: {
     opacity: 0.7,

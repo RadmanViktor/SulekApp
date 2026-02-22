@@ -9,6 +9,7 @@ import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { toLocalDateString } from '../utils/date';
 import { getApiBaseUrl } from '../config/apiConfig';
 import { useAuth } from '../contexts/AuthContext';
+import { colors } from '../theme/colors';
 
 type CalenderNav = BottomTabNavigationProp<RootTabParamList, "CalenderScreen">;
 
@@ -125,7 +126,7 @@ export default function CalendarScreen() {
       const isCompleted = status ? status.completed === status.total : false;
       acc[date] = {
         marked: true,
-        dotColor: isCompleted ? '#22C55E' : '#14B8A6',
+        dotColor: isCompleted ? colors.success : colors.brand.primary,
       };
       return acc;
     }, {});
@@ -210,9 +211,9 @@ export default function CalendarScreen() {
             textSectionTitleColor: '#64748B',
             dayTextColor: '#334155',
             monthTextColor: '#334155',
-            todayTextColor: '#14B8A6',
-            arrowColor: '#14B8A6',
-            dotColor: '#14B8A6',
+            todayTextColor: colors.brand.primary,
+            arrowColor: colors.brand.primary,
+            dotColor: colors.brand.primary,
           }}
         />
       </SafeAreaView>
@@ -239,14 +240,14 @@ const styles = StyleSheet.create({
     color: '#CBD5F5',
   },
   dayTextToday: {
-    color: '#14B8A6',
+    color: colors.brand.primary,
     fontWeight: '600',
   },
   dayDot: {
     width: 6,
     height: 6,
     borderRadius: 999,
-    backgroundColor: '#14B8A6',
+    backgroundColor: colors.brand.primary,
     marginTop: 2,
   },
   completedBadge: {
@@ -256,7 +257,7 @@ const styles = StyleSheet.create({
     width: 14,
     height: 14,
     borderRadius: 7,
-    backgroundColor: '#22C55E',
+    backgroundColor: colors.success,
     alignItems: 'center',
     justifyContent: 'center',
   },

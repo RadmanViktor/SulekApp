@@ -18,6 +18,7 @@ import AuthScreen from './screens/AuthScreen';
 import { RootTabParamList } from './navigations/types';
 import AnimatedTabButton from './components/AnimatedTabButton';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { colors } from './theme/colors';
 
 const Tab = createBottomTabNavigator<RootTabParamList>();
 
@@ -25,7 +26,7 @@ function AppTabs() {
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
-        tabBarActiveTintColor: '#14B8A6',
+        tabBarActiveTintColor: colors.brand.primary,
         tabBarShowLabel: false,
 
         tabBarStyle: {
@@ -121,7 +122,7 @@ function AppContent() {
   if (isAuthLoading) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="small" color="#14B8A6" />
+        <ActivityIndicator size="small" color={colors.brand.primary} />
       </View>
     );
   }

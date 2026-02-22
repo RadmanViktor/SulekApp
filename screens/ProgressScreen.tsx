@@ -6,6 +6,7 @@ import Dropdown from '../components/Dropdown';
 import { useFocusEffect } from '@react-navigation/native';
 import { getApiBaseUrl } from '../config/apiConfig';
 import { useAuth } from '../contexts/AuthContext';
+import { colors } from '../theme/colors';
 type ExerciseItem = { id: number; name: string };
 type ProgressEntry = {
   workoutId: number;
@@ -353,7 +354,7 @@ export default function ProgressScreen() {
                       <Polyline
                         points={graphLayout.line}
                         fill="none"
-                        stroke="#14B8A6"
+                        stroke={colors.brand.primary}
                         strokeWidth="3"
                       />
                       {graphLayout.points.map(point => (
@@ -362,7 +363,7 @@ export default function ProgressScreen() {
                           cx={point.x}
                           cy={point.y}
                           r={4}
-                          fill="#14B8A6"
+                          fill={colors.brand.primary}
                         />
                       ))}
                       {graphLayout.points.map((point, index) => (
@@ -444,7 +445,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Poppins_400Regular',
   },
   monthValueGoal: {
-    color: '#14B8A6',
+    color: colors.brand.primary,
   },
   helper: {
     fontSize: 14,
@@ -489,7 +490,7 @@ const styles = StyleSheet.create({
   },
   barFill: {
     height: '100%',
-    backgroundColor: '#14B8A6',
+    backgroundColor: colors.brand.primary,
   },
   graphButton: {
     marginTop: 12,
@@ -545,8 +546,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   graphToggleButtonActive: {
-    backgroundColor: '#14B8A6',
-    borderColor: '#14B8A6',
+    backgroundColor: colors.brand.primary,
+    borderColor: colors.brand.primary,
   },
   graphToggleText: {
     fontSize: 12,

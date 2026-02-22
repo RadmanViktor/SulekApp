@@ -12,6 +12,7 @@ import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { toLocalDateString } from '../utils/date';
 import { getApiBaseUrl } from '../config/apiConfig';
 import { useAuth } from '../contexts/AuthContext';
+import { colors } from '../theme/colors';
 
 type Props = BottomTabScreenProps<RootTabParamList, "CreateWorkoutScreen">;
 
@@ -366,7 +367,7 @@ export default function CreateWorkoutScreen({ route, navigation }: Props) {
           style={{ marginTop: 32 }}
         >
           <LinearGradient
-            colors={['#14B8A6', '#0D9488']} // teal gradient
+            colors={[colors.brand.highlight, colors.brand.primary, colors.brand.deep]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={[
@@ -426,7 +427,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
     paddingHorizontal: 20,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.brand.background,
   },
   header: {
     textAlign: 'center',
@@ -441,7 +442,7 @@ const styles = StyleSheet.create({
   },
   toggleRow: {
     flexDirection: 'row',
-    backgroundColor: '#E2E8F0',
+    backgroundColor: colors.brand.soft,
     borderRadius: 999,
     padding: 4,
   },
@@ -452,7 +453,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
   },
   toggleButtonActive: {
-    backgroundColor: '#14B8A6',
+    backgroundColor: colors.brand.primary,
   },
   toggleButtonText: {
     fontSize: 14,
@@ -471,7 +472,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     padding: 14,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border,
   },
   templateTitle: {
     fontSize: 16,
@@ -496,7 +497,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 14,
     borderRadius: 999,
-    backgroundColor: '#14B8A6',
+    backgroundColor: colors.brand.primary,
   },
   templateButtonText: {
     fontSize: 13,
@@ -515,7 +516,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 18,
     borderRadius: 999,
-    backgroundColor: '#14B8A6',
+    backgroundColor: colors.brand.primary,
   },
   templatePromptButtonText: {
     fontSize: 14,
@@ -532,7 +533,7 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
   },
   modalCard: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.brand.background,
     borderRadius: 20,
     padding: 18,
     width: '100%',
@@ -567,7 +568,7 @@ const styles = StyleSheet.create({
   input: {
     fontFamily: 'Poppins_400Regular',
     borderWidth: 1.5,
-    borderColor: '#d1d5db',
+    borderColor: colors.border,
     borderRadius: 10,
     padding: 12,
     fontSize: 16,
@@ -608,8 +609,8 @@ const styles = StyleSheet.create({
     color: '#0f172a',
     fontSize: 16,
   },
-  selectedItemLabel: {
-    color: '#2563eb', // blå accent
+    selectedItemLabel: {
+    color: colors.brand.primary,
     fontWeight: '600',
   },
   searchContainer: {

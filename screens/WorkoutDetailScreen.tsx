@@ -9,6 +9,7 @@ import ConfettiCannon from 'react-native-confetti-cannon';
 import { Ionicons } from '@expo/vector-icons';
 import { getApiBaseUrl } from '../config/apiConfig';
 import { useAuth } from '../contexts/AuthContext';
+import { colors } from '../theme/colors';
 
 type Props = BottomTabScreenProps<RootTabParamList, 'WorkoutDetailScreen'>;
 
@@ -294,7 +295,7 @@ export default function WorkoutDetailScreen({ route, navigation }: Props) {
                   workout.completed && styles.exerciseCardCompleted
                 ]}>
                   <View style={styles.exerciseHeader}>
-                    <Ionicons name="barbell-outline" size={20} color="#14B8A6" />
+                    <Ionicons name="barbell-outline" size={20} color={colors.brand.primary} />
                     <Text style={styles.exerciseName}>{exercise.name}</Text>
                   </View>
 
@@ -310,11 +311,11 @@ export default function WorkoutDetailScreen({ route, navigation }: Props) {
                             </View>
                             <View style={styles.setInfo}>
                               <View style={styles.setDetail}>
-                                <Ionicons name="repeat-outline" size={16} color="#14B8A6" />
+                                <Ionicons name="repeat-outline" size={16} color={colors.brand.primary} />
                                 <Text style={styles.setDetailText}>{set.reps} reps</Text>
                               </View>
                               <View style={styles.setDetail}>
-                                <Ionicons name="barbell-outline" size={16} color="#14B8A6" />
+                                <Ionicons name="barbell-outline" size={16} color={colors.brand.primary} />
                                 <Text style={styles.setDetailText}>{set.weightKg ?? 0} kg</Text>
                               </View>
                             </View>
@@ -475,12 +476,12 @@ const styles = StyleSheet.create({
     borderTopColor: '#E2E8F0',
   },
   exerciseCardCompleted: {
-    backgroundColor: '#F0FDFA',
+    backgroundColor: colors.brand.soft,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#99F6E4',
+    borderColor: colors.border,
     borderTopWidth: 1,
-    shadowColor: '#14B8A6',
+    shadowColor: colors.brand.primary,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 4,
@@ -521,7 +522,7 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   setBadge: {
-    backgroundColor: '#14B8A6',
+    backgroundColor: colors.brand.primary,
     borderRadius: 6,
     paddingVertical: 4,
     paddingHorizontal: 10,
@@ -577,7 +578,7 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     borderWidth: 1,
-    borderColor: '#D1D5DB',
+    borderColor: colors.border,
     borderRadius: 10,
     paddingHorizontal: 10,
     paddingVertical: 8,
@@ -591,7 +592,7 @@ const styles = StyleSheet.create({
   },
   addButton: {
     marginTop: 12,
-    backgroundColor: '#14B8A6',
+    backgroundColor: colors.brand.primary,
     borderRadius: 12,
     paddingVertical: 10,
     alignItems: 'center',
@@ -606,7 +607,7 @@ const styles = StyleSheet.create({
   },
   completeButton: {
     marginTop: 16,
-    backgroundColor: '#0D9488',
+    backgroundColor: colors.brand.pressed,
     borderRadius: 12,
     paddingVertical: 12,
     alignItems: 'center',

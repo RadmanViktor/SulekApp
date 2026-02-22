@@ -1,6 +1,6 @@
 import { View, Text, Pressable, Modal, FlatList, StyleSheet, TextInput, ActivityIndicator } from "react-native";
 import { useState, useMemo, useEffect, useRef } from "react";
-import { LinearGradient } from "expo-linear-gradient";
+import { colors } from '../theme/colors';
 
 export type DropItem = { data: string };
 
@@ -196,7 +196,7 @@ const styles = StyleSheet.create({
   button: {
     fontFamily: 'Poppins_400Regular',
     borderWidth: 1.5,
-    borderColor: '#d1d5db',
+    borderColor: colors.border,
     borderRadius: 10,
     padding: 12,
     fontSize: 16,
@@ -232,7 +232,7 @@ const styles = StyleSheet.create({
     shadowColor: "#000",
     shadowOpacity: 0.1,
     shadowRadius: 2,
-    backgroundColor: '#14B8A6', 
+     backgroundColor: colors.brand.primary,
   },
   chipText: { fontSize: 14, color: "white", fontWeight: "600" },
   chipRemove: {
@@ -263,14 +263,14 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: colors.border,
     borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 8,
     fontFamily: 'Poppins_400Regular',
     fontSize: 14,
     color: '#111827',
-    backgroundColor: '#f8fafc',
+    backgroundColor: colors.brand.background,
   },
   createRow: {
     paddingHorizontal: 12,
@@ -278,13 +278,13 @@ const styles = StyleSheet.create({
     marginHorizontal: 12,
     marginBottom: 8,
     borderRadius: 8,
-    backgroundColor: '#f1f5f9',
+    backgroundColor: colors.brand.soft,
     alignItems: 'center',
   },
   createText: {
     fontFamily: 'Poppins_400Regular',
     fontSize: 14,
-    color: '#0F172A',
+     color: colors.textPrimary,
   },
   item: {
     paddingVertical: 12,
@@ -293,7 +293,7 @@ const styles = StyleSheet.create({
     borderBottomColor: "#eee",
   },
   itemGradient: {
-    backgroundColor: '#14B8A6', 
+     backgroundColor: colors.brand.primary,
     borderRadius: 6,
     marginHorizontal: 6,
     paddingVertical: 12,

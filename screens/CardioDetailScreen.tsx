@@ -11,6 +11,7 @@ import MapView, { Polyline } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { getApiBaseUrl } from '../config/apiConfig';
 import { useAuth } from '../contexts/AuthContext';
+import { colors } from '../theme/colors';
 
 type Props = BottomTabScreenProps<RootTabParamList, 'CardioDetailScreen'>;
 
@@ -438,7 +439,7 @@ export default function CardioDetailScreen({ route, navigation }: Props) {
       <ScrollView style={styles.content}>
         {isLoading ? (
           <View style={styles.loading}>
-            <ActivityIndicator size="large" color="#14B8A6" />
+            <ActivityIndicator size="large" color={colors.brand.primary} />
           </View>
         ) : !workout ? (
           <Text style={styles.helper}>Inga cardio-pass denna dag.</Text>
@@ -461,7 +462,7 @@ export default function CardioDetailScreen({ route, navigation }: Props) {
                   pitchEnabled={false}
                   rotateEnabled={false}
                 >
-                  <Polyline coordinates={completedRoute} strokeColor="#14B8A6" strokeWidth={4} />
+                  <Polyline coordinates={completedRoute} strokeColor={colors.brand.primary} strokeWidth={4} />
                 </MapView>
               </View>
             )}
@@ -469,22 +470,22 @@ export default function CardioDetailScreen({ route, navigation }: Props) {
             {workout.completed && (
               <View style={styles.statsGrid}>
                 <View style={styles.statCard}>
-                  <Ionicons name="time-outline" size={28} color="#14B8A6" />
+                  <Ionicons name="time-outline" size={28} color={colors.brand.primary} />
                   <Text style={styles.statValue}>{workout.cardioTimeMinutes || 0}</Text>
                   <Text style={styles.statLabel}>Minuter</Text>
                 </View>
                 <View style={styles.statCard}>
-                  <Ionicons name="map-outline" size={28} color="#14B8A6" />
+                  <Ionicons name="map-outline" size={28} color={colors.brand.primary} />
                   <Text style={styles.statValue}>{workout.cardioDistanceKm || 0}</Text>
                   <Text style={styles.statLabel}>Kilometer</Text>
                 </View>
                 <View style={styles.statCard}>
-                  <Ionicons name="flame-outline" size={28} color="#14B8A6" />
+                  <Ionicons name="flame-outline" size={28} color={colors.brand.primary} />
                   <Text style={styles.statValue}>{workout.cardioCalories || 0}</Text>
                   <Text style={styles.statLabel}>Kalorier</Text>
                 </View>
                 <View style={styles.statCard}>
-                  <Ionicons name="speedometer-outline" size={28} color="#14B8A6" />
+                  <Ionicons name="speedometer-outline" size={28} color={colors.brand.primary} />
                   <Text style={styles.statValue}>
                     {workout.cardioTimeMinutes && workout.cardioDistanceKm && workout.cardioDistanceKm > 0
                       ? (workout.cardioTimeMinutes / workout.cardioDistanceKm).toFixed(1)
@@ -497,7 +498,7 @@ export default function CardioDetailScreen({ route, navigation }: Props) {
 
             {workout.completed && (
               <View style={styles.completionBadge}>
-                <Ionicons name="checkmark-circle" size={24} color="#10B981" />
+                <Ionicons name="checkmark-circle" size={24} color={colors.success} />
                 <Text style={styles.completionText}>Pass klart!</Text>
               </View>
             )}
@@ -582,7 +583,7 @@ export default function CardioDetailScreen({ route, navigation }: Props) {
                       }
                     >
                       {cardioDraft?.route && cardioDraft.route.length > 1 ? (
-                        <Polyline coordinates={cardioDraft.route} strokeColor="#0D9488" strokeWidth={4} />
+                        <Polyline coordinates={cardioDraft.route} strokeColor={colors.brand.pressed} strokeWidth={4} />
                       ) : null}
                     </MapView>
                   </View>
@@ -717,9 +718,9 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 12,
     borderRadius: 12,
-    backgroundColor: '#F0FDF4',
+    backgroundColor: colors.brand.soft,
     borderWidth: 1,
-    borderColor: '#BBF7D0',
+    borderColor: colors.border,
   },
   cardioHeader: {
     flexDirection: 'row',
@@ -753,7 +754,7 @@ const styles = StyleSheet.create({
   cardioInput: {
     flex: 1,
     borderWidth: 1,
-    borderColor: '#D1D5DB',
+    borderColor: colors.border,
     borderRadius: 10,
     paddingHorizontal: 10,
     paddingVertical: 10,
@@ -813,19 +814,19 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#E2E8F0',
+    backgroundColor: colors.brand.soft,
   },
   timerIconButtonActive: {
-    backgroundColor: '#14B8A6',
+    backgroundColor: colors.brand.primary,
   },
   timerIconButtonStop: {
-    backgroundColor: '#0D9488',
+    backgroundColor: colors.brand.pressed,
   },
   saveButton: {
     marginTop: 12,
     paddingVertical: 12,
     borderRadius: 10,
-    backgroundColor: '#14B8A6',
+    backgroundColor: colors.brand.primary,
     alignItems: 'center',
   },
   saveButtonText: {
@@ -840,7 +841,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
     paddingVertical: 14,
     borderRadius: 10,
-    backgroundColor: '#14B8A6',
+    backgroundColor: colors.brand.primary,
     alignItems: 'center',
   },
   completeButtonText: {
@@ -849,7 +850,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Poppins_400Regular',
   },
   completeButtonDone: {
-    backgroundColor: '#10B981',
+    backgroundColor: colors.success,
   },
   completeButtonTextDone: {
     color: '#FFFFFF',
@@ -863,7 +864,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     overflow: 'hidden',
     borderWidth: 2,
-    borderColor: '#14B8A6',
+    borderColor: colors.brand.primary,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
@@ -883,13 +884,13 @@ const styles = StyleSheet.create({
   statCard: {
     flex: 1,
     minWidth: '45%',
-    backgroundColor: '#F0FDFA',
+    backgroundColor: colors.brand.soft,
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#99F6E4',
-    shadowColor: '#14B8A6',
+    borderColor: colors.border,
+    shadowColor: colors.brand.primary,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 4,

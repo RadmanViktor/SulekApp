@@ -7,6 +7,7 @@ import ProfileButton from '../components/ProfileButton';
 import { toLocalDateString } from '../utils/date';
 import { getApiBaseUrl } from '../config/apiConfig';
 import { useAuth } from '../contexts/AuthContext';
+import { colors } from '../theme/colors';
 
 type HomeNav = BottomTabNavigationProp<RootTabParamList, 'HomeScreen'>;
 
@@ -165,7 +166,7 @@ const style = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 999,
-    backgroundColor: '#14B8A6',
+    backgroundColor: colors.brand.primary,
   },
   quickButtonText: {
     color: '#fff',
@@ -178,11 +179,11 @@ const style = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: '#14B8A6',
+    borderColor: colors.brand.primary,
     backgroundColor: 'transparent',
   },
   quickButtonSecondaryText: {
-    color: '#14B8A6',
+    color: colors.brand.primary,
     fontSize: 14,
     fontFamily: 'Poppins_400Regular',
   },
