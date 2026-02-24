@@ -110,7 +110,7 @@ export default function HomeScreen() {
 
   return (
     <ImageBackground
-      source={require("../assets/background.png")}
+      source={require('../assets/blue_bg.jpg')}
       style={style.bg}
       resizeMode="cover">
       <View style={style.wrapper}>

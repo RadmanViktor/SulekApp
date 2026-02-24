@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, Image, TextInput, Pressable, ActivityIndicator, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Image, TextInput, Pressable, ActivityIndicator, ScrollView, ImageBackground } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../contexts/AuthContext';
 import { colors } from '../theme/colors';
@@ -17,8 +17,9 @@ export default function ProfileScreen() {
   }, [mainFocus, weeklyGoal]);
 
   return (
-    <SafeAreaView style={styles.wrapper} edges={['top', 'left', 'right']}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+    <ImageBackground source={require('../assets/blue_bg.jpg')} style={styles.bg} resizeMode="cover">
+      <SafeAreaView style={styles.wrapper} edges={['top', 'left', 'right']}>
+        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <Image
             source={{ uri: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=320&q=80' }}
@@ -81,15 +82,19 @@ export default function ProfileScreen() {
         >
           {isLoggingOut ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.logoutButtonText}>Logga ut</Text>}
         </Pressable>
-      </ScrollView>
-    </SafeAreaView>
+        </ScrollView>
+      </SafeAreaView>
+    </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
+  bg: {
+    flex: 1,
+  },
   wrapper: {
     flex: 1,
-    backgroundColor: colors.brand.background,
+    backgroundColor: 'transparent',
     paddingHorizontal: 20,
   },
   content: {

@@ -416,7 +416,7 @@ export default function CardioDetailScreen({ route, navigation }: Props) {
 
   return (
     <ImageBackground
-      source={require('../assets/background_2.png')}
+      source={require('../assets/blue_bg.jpg')}
       style={styles.bg}
       resizeMode='cover'
     >

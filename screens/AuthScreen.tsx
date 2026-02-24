@@ -2,6 +2,8 @@ import React, { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Image,
+  ImageBackground,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -25,8 +27,8 @@ export default function AuthScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const subtitle = isLoginMode
-    ? 'Logga in för att fortsatta din träningsresa.'
-    : 'Skapa konto och börja följa dina träningsresa.';
+    ? 'Logga in för att fortsätta din träningsresa.'
+    : 'Skapa konto och börja följa din utveckling.';
 
   const isFormValid = useMemo(() => {
     if (isLoginMode) {
@@ -56,39 +58,34 @@ export default function AuthScreen() {
   };
 
   return (
-    <LinearGradient
-      colors={[colors.brand.highlight, colors.brand.primary, colors.brand.deep]}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={styles.gradientBg}
-    >
-      <SafeAreaView style={styles.container} edges={['top', 'right', 'left']}>
+    <ImageBackground source={require('../assets/blue_bg.jpg')} style={styles.bg} resizeMode="cover">
+      <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
         <KeyboardAvoidingView
           style={styles.keyboardWrap}
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
           <View style={styles.topArea}>
-            <Text style={styles.title}>Välkommen till Sulek</Text>
-            <Text style={styles.subtitle}>{subtitle}</Text>
+            <Image source={require('../assets/evolve_logo.png')} style={styles.logo} resizeMode="contain" />
+            <Text style={styles.tagline}>Train. Track. Evolve.</Text>
           </View>
 
-          <View style={styles.formWrap}>
+          <View style={styles.formCard}>
             {!isLoginMode ? (
               <View style={styles.inputRow}>
-                <Ionicons name="person-outline" size={19} color="rgba(255,255,255,0.88)" />
+                <Ionicons name="person-outline" size={20} color="#6B7A96" />
                 <TextInput
                   style={styles.input}
                   placeholder="Namn"
                   value={name}
                   onChangeText={setName}
                   autoCapitalize="words"
-                  placeholderTextColor="rgba(255,255,255,0.72)"
+                  placeholderTextColor="#95A0B8"
                 />
               </View>
             ) : null}
 
             <View style={styles.inputRow}>
-              <Ionicons name="mail-outline" size={19} color="rgba(255,255,255,0.88)" />
+              <Ionicons name="mail-outline" size={20} color="#6B7A96" />
               <TextInput
                 style={styles.input}
                 placeholder="E-post"
@@ -96,19 +93,19 @@ export default function AuthScreen() {
                 onChangeText={setEmail}
                 autoCapitalize="none"
                 keyboardType="email-address"
-                placeholderTextColor="rgba(255,255,255,0.72)"
+                placeholderTextColor="#95A0B8"
               />
             </View>
 
             <View style={styles.inputRow}>
-              <Ionicons name="lock-closed-outline" size={19} color="rgba(255,255,255,0.88)" />
+              <Ionicons name="lock-closed-outline" size={20} color="#6B7A96" />
               <TextInput
                 style={styles.input}
                 placeholder="Lösenord"
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry
-                placeholderTextColor="rgba(255,255,255,0.72)"
+                placeholderTextColor="#95A0B8"
               />
             </View>
 
@@ -117,43 +114,42 @@ export default function AuthScreen() {
             ) : (
               <Text style={styles.hintMuted}>Glömt lösenord?</Text>
             )}
-          </View>
 
-          <Pressable
-            style={[styles.roundButton, (!isFormValid || isSubmitting) && styles.roundButtonDisabled]}
-            onPress={handleSubmit}
-            disabled={!isFormValid || isSubmitting}
-          >
-            {isSubmitting ? (
-              <ActivityIndicator color="#FFFFFF" />
-            ) : (
-              <Text style={styles.roundButtonText}>{isLoginMode ? 'Logga in' : 'Skapa konto'}</Text>
-            )}
-          </Pressable>
+            <Pressable
+              style={[styles.roundButton, (!isFormValid || isSubmitting) && styles.roundButtonDisabled]}
+              onPress={handleSubmit}
+              disabled={!isFormValid || isSubmitting}
+            >
+              <LinearGradient
+                colors={[colors.brand.highlight, colors.brand.primary, colors.brand.deep]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.roundButtonGradient}
+              >
+                {isSubmitting ? (
+                  <ActivityIndicator color="#FFFFFF" />
+                ) : (
+                  <Text style={styles.roundButtonText}>{isLoginMode ? 'Logga in' : 'Skapa konto'}</Text>
+                )}
+              </LinearGradient>
+            </Pressable>
 
-          <View style={styles.bottomArea}>
-            <Text style={styles.modeTitle}>{isLoginMode ? 'Ny här?' : 'Har du redan ett konto?'}</Text>
             <Pressable
               style={styles.secondaryButton}
               onPress={() => setIsLoginMode(prev => !prev)}
               disabled={isSubmitting}
             >
-              <Text style={styles.secondaryButtonText}>
-                {isLoginMode ? 'Skapa konto' : 'Logga in'}
-              </Text>
+              <Text style={styles.secondaryButtonText}>{isLoginMode ? 'Skapa konto' : 'Logga in'}</Text>
             </Pressable>
           </View>
-
-          <View pointerEvents="none" style={styles.waveOne} />
-          <View pointerEvents="none" style={styles.waveTwo} />
         </KeyboardAvoidingView>
       </SafeAreaView>
-    </LinearGradient>
+    </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  gradientBg: {
+  bg: {
     flex: 1,
   },
   container: {
@@ -161,129 +157,100 @@ const styles = StyleSheet.create({
   },
   keyboardWrap: {
     flex: 1,
-    paddingHorizontal: 28,
-    paddingTop: 24,
-    paddingBottom: 24,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+    justifyContent: 'center',
   },
   topArea: {
     alignItems: 'center',
-    marginTop: 10,
+    marginBottom: 20,
   },
-  logoCircle: {
-    width: 92,
-    height: 92,
-    borderRadius: 46,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.brand.soft,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  title: {
-    marginTop: 20,
-    fontSize: 30,
-    color: '#FFFFFF',
-    fontFamily: 'Poppins_400Regular',
-    textAlign: 'center',
+  logo: {
+    width: 700,
+    height: 288,
   },
   subtitle: {
-    marginTop: 10,
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.88)',
+    marginTop: 8,
+    fontSize: 16,
+    color: '#4B5B7A',
     fontFamily: 'Poppins_400Regular',
     textAlign: 'center',
   },
-  formWrap: {
-    marginTop: 44,
-    gap: 16,
+  tagline: {
+    marginTop: -78,
+    fontSize: 18,
+    color: '#6B7A96',
+    fontFamily: 'Poppins_400Regular',
+    textAlign: 'center',
+  },
+  formCard: {
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    borderRadius: 28,
+    paddingHorizontal: 18,
+    paddingVertical: 22,
+    borderWidth: 1,
+    borderColor: '#E7EEF9',
   },
   inputRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.45)',
+    borderBottomColor: '#DFE9F9',
     paddingBottom: 8,
+    marginBottom: 14,
   },
   input: {
     flex: 1,
-    fontSize: 18,
-    color: '#FFFFFF',
+    fontSize: 22,
+    color: '#34445E',
     fontFamily: 'Poppins_400Regular',
     paddingVertical: 8,
   },
   hint: {
-    marginTop: -6,
+    marginTop: -4,
     fontSize: 12,
-    color: 'rgba(255,255,255,0.85)',
+    color: '#5B6C8C',
     fontFamily: 'Poppins_400Regular',
   },
   hintMuted: {
-    marginTop: -6,
+    marginTop: -4,
     fontSize: 12,
-    color: 'rgba(255,255,255,0.72)',
+    color: '#6CAEF6',
     fontFamily: 'Poppins_400Regular',
   },
   roundButton: {
-    alignSelf: 'center',
-    marginTop: 34,
-    minWidth: 350,
-    height: 56,
-    paddingHorizontal: 24,
+    marginTop: 18,
     borderRadius: 999,
+    overflow: 'hidden',
+  },
+  roundButtonGradient: {
+    height: 56,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.14)',
+    borderRadius: 999,
   },
   roundButtonText: {
     color: '#FFFFFF',
-    fontSize: 15,
-    letterSpacing: 0.2,
+    fontSize: 17,
     fontFamily: 'Poppins_400Regular',
   },
   roundButtonDisabled: {
-    opacity: 1,
-  },
-  bottomArea: {
-    marginTop: 36,
-    alignItems: 'center',
-  },
-  modeTitle: {
-    color: 'rgba(255,255,255,0.85)',
-    fontSize: 13,
-    fontFamily: 'Poppins_400Regular',
+    opacity: 0.6,
   },
   secondaryButton: {
-    marginTop: 8,
-    alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 6,
+    marginTop: 14,
+    alignSelf: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 28,
     borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.14)',
+    borderWidth: 1,
+    borderColor: '#CFE1FA',
+    backgroundColor: '#F7FBFF',
   },
   secondaryButtonText: {
-    color: '#FFFFFF',
-    fontSize: 15,
+    color: '#5E8ED5',
+    fontSize: 16,
     fontFamily: 'Poppins_400Regular',
-  },
-  waveOne: {
-    position: 'absolute',
-    left: -30,
-    right: -30,
-    bottom: -84,
-    height: 180,
-    borderTopLeftRadius: 180,
-    borderTopRightRadius: 180,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-  },
-  waveTwo: {
-    position: 'absolute',
-    left: -60,
-    right: -60,
-    bottom: -114,
-    height: 220,
-    borderTopLeftRadius: 220,
-    borderTopRightRadius: 220,
-    backgroundColor: 'rgba(255,255,255,0.1)',
   },
 });

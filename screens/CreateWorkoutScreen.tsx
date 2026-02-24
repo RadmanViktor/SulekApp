@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { StyleSheet, View, Text, TextInput, ScrollView, Platform, StatusBar, Pressable, Alert, ActivityIndicator, Modal, Dimensions } from 'react-native';
+import { StyleSheet, View, Text, TextInput, ScrollView, Platform, StatusBar, Pressable, Alert, ActivityIndicator, Modal, Dimensions, ImageBackground } from 'react-native';
 import { DropItem } from '../components/Dropdown';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -298,7 +298,8 @@ export default function CreateWorkoutScreen({ route, navigation }: Props) {
   }
 
   return (
-    <SafeAreaView style={{ flex: 1 }} edges={['right', 'left', 'top']}>
+    <ImageBackground source={require('../assets/blue_bg.jpg')} style={styles.bg} resizeMode="cover">
+      <SafeAreaView style={{ flex: 1 }} edges={['right', 'left', 'top']}>
       <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40 }}>
         <Text style={styles.header}>Skapa nytt träningspass</Text>
 
@@ -418,16 +419,20 @@ export default function CreateWorkoutScreen({ route, navigation }: Props) {
           </View>
         </View>
       </Modal>
-    </SafeAreaView>
+      </SafeAreaView>
+    </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
+  bg: {
+    flex: 1,
+  },
   container: {
     flex: 1,
     paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
     paddingHorizontal: 20,
-    backgroundColor: colors.brand.background,
+    backgroundColor: 'transparent',
   },
   header: {
     textAlign: 'center',
@@ -533,7 +538,7 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
   },
   modalCard: {
-    backgroundColor: colors.brand.background,
+    backgroundColor: 'rgba(245, 249, 255, 0.96)',
     borderRadius: 20,
     padding: 18,
     width: '100%',

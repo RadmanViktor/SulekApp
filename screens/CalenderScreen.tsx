@@ -160,7 +160,7 @@ export default function CalendarScreen() {
 
   return (
     <ImageBackground
-      source={require("../assets/background_1.png")}
+      source={require('../assets/blue_bg.jpg')}
       style={styles.bg}
       resizeMode='cover'
     >

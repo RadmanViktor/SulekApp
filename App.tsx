@@ -34,7 +34,8 @@ function AppTabs() {
           paddingTop: 8,
           paddingBottom: 18,
           borderTopWidth: 1,
-          borderTopColor: '#E5E7EB',
+          borderTopColor: colors.border,
+          backgroundColor: 'rgba(255,255,255,0.95)',
         },
 
         tabBarItemStyle: {
