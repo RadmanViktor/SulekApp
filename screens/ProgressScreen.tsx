@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Pressable, Modal, ImageBackground } from 'react-native';
-import Svg, { Polyline, Circle, Text as SvgText } from 'react-native-svg';
+import Svg, { Polyline, Circle, G, Text as SvgText } from 'react-native-svg';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Dropdown from '../components/Dropdown';
 import { useFocusEffect } from '@react-navigation/native';
@@ -19,6 +19,12 @@ type ProgressEntry = {
   notes?: string | null;
 };
 
+type GraphEntry = {
+  date: string;
+  value: number;
+  maxWeightKg?: number;
+};
+
 const apiBaseUrl = getApiBaseUrl();
 
 export default function ProgressScreen() {
@@ -31,7 +37,7 @@ export default function ProgressScreen() {
   const [monthlyWorkoutCount, setMonthlyWorkoutCount] = useState(0);
   const [isLoadingMonthly, setIsLoadingMonthly] = useState(false);
   const [isGraphOpen, setIsGraphOpen] = useState(false);
-  const [graphMetric, setGraphMetric] = useState<'weight' | 'reps' | 'repsAtMaxWeight'>('weight');
+  const [graphMetric, setGraphMetric] = useState<'weight' | 'repsAtMaxWeight'>('weight');
   const milestoneEmoji = useMemo(() => {
     if (monthlyWorkoutCount >= 200) return '👑';
     if (monthlyWorkoutCount >= 150) return '🏆';
@@ -57,7 +63,7 @@ export default function ProgressScreen() {
     return { maxWeight, latestWeight, percent };
   }, [progressEntries]);
 
-  const graphData = useMemo(() => {
+  const graphData = useMemo<GraphEntry[]>(() => {
     if (progressEntries.length === 0) return [];
     const dateMap = new Map<string, ProgressEntry[]>();
 
@@ -70,18 +76,13 @@ export default function ProgressScreen() {
     });
 
     const entries = Array.from(dateMap.entries()).map(([date, items]) => {
-      if (graphMetric === 'reps') {
-        const maxReps = Math.max(...items.map(item => item.reps), 0);
-        return { date, value: maxReps };
-      }
-
       if (graphMetric === 'repsAtMaxWeight') {
         const maxWeight = Math.max(...items.map(item => item.weightKg ?? 0), 0);
         const repsAtMaxWeight = Math.max(
           ...items.filter(item => (item.weightKg ?? 0) === maxWeight).map(item => item.reps),
           0
         );
-        return { date, value: repsAtMaxWeight };
+        return { date, value: repsAtMaxWeight, maxWeightKg: maxWeight };
       }
 
       const maxWeight = Math.max(...items.map(item => item.weightKg ?? 0), 0);
@@ -97,14 +98,17 @@ export default function ProgressScreen() {
   );
 
   const graphLayout = useMemo(() => {
+    const isRepsAtMaxMetric = graphMetric === 'repsAtMaxWeight';
     const chartHeight = 120;
     const chartPadding = 10;
+    const chartTopPadding = isRepsAtMaxMetric ? 38 : 10;
+    const chartBottomPadding = 0;
     const chartStep = 56;
     const safeMax = maxGraphWeight > 0 ? maxGraphWeight : 1;
 
     const points = graphData.map((entry, index) => {
       const x = chartPadding + index * chartStep;
-      const y = chartPadding + (chartHeight - chartPadding * 2) * (1 - entry.value / safeMax);
+      const y = chartTopPadding + (chartHeight - chartTopPadding - chartBottomPadding) * (1 - entry.value / safeMax);
       return { x, y, date: entry.date };
     });
 
@@ -117,7 +121,7 @@ export default function ProgressScreen() {
       points,
       line: points.map(point => `${point.x},${point.y}`).join(' '),
     };
-  }, [graphData, maxGraphWeight]);
+  }, [graphData, maxGraphWeight, graphMetric]);
 
   const graphUnit = useMemo(() => {
     if (graphMetric === 'weight') return 'kg';
@@ -323,19 +327,13 @@ export default function ProgressScreen() {
         <Modal visible={isGraphOpen} transparent animationType="fade" onRequestClose={() => setIsGraphOpen(false)}>
           <Pressable style={styles.graphBackdrop} onPress={() => setIsGraphOpen(false)}>
             <Pressable style={styles.graphModal} onPress={() => null}>
-              <Text style={styles.graphTitle}>{activeExercise} • {graphMetric === 'weight' ? 'Maxvikt' : graphMetric === 'reps' ? 'Max reps' : 'Reps vid maxvikt'}</Text>
+              <Text style={styles.graphTitle}>{activeExercise} • {graphMetric === 'weight' ? 'Maxvikt' : 'Reps vid maxvikt'}</Text>
               <View style={styles.graphToggle}>
                 <Pressable
                   style={[styles.graphToggleButton, graphMetric === 'weight' && styles.graphToggleButtonActive]}
                   onPress={() => setGraphMetric('weight')}
                 >
                   <Text style={[styles.graphToggleText, graphMetric === 'weight' && styles.graphToggleTextActive]}>Maxvikt</Text>
-                </Pressable>
-                <Pressable
-                  style={[styles.graphToggleButton, graphMetric === 'reps' && styles.graphToggleButtonActive]}
-                  onPress={() => setGraphMetric('reps')}
-                >
-                  <Text style={[styles.graphToggleText, graphMetric === 'reps' && styles.graphToggleTextActive]}>Max reps</Text>
                 </Pressable>
                 <Pressable
                   style={[styles.graphToggleButton, graphMetric === 'repsAtMaxWeight' && styles.graphToggleButtonActive]}
@@ -366,18 +364,48 @@ export default function ProgressScreen() {
                           fill={colors.brand.primary}
                         />
                       ))}
-                      {graphLayout.points.map((point, index) => (
-                        <SvgText
-                          key={`label-${point.date}`}
-                          x={point.x}
-                          y={Math.max(point.y - 8, 10)}
-                          fontSize="10"
-                          fill="#0F172A"
-                          textAnchor="middle"
-                        >
-                          {Math.round(graphData[index]?.value ?? 0)} {graphUnit}
-                        </SvgText>
-                      ))}
+                      {graphMetric === 'repsAtMaxWeight'
+                        ? graphLayout.points.map((point, index) => {
+                          const kgBaseY = Math.max(point.y - 14, 24);
+                          const kgY = Math.min(kgBaseY, point.y - 6);
+                          const repsBaseY = Math.max(point.y - 26, 12);
+                          const repsY = Math.max(10, Math.min(repsBaseY, kgY - 10));
+
+                          return (
+                            <G key={`label-${point.date}`}>
+                              <SvgText
+                                x={point.x}
+                                y={repsY}
+                                fontSize="10"
+                                fill="#0F172A"
+                                textAnchor="middle"
+                              >
+                                {`${Math.round(graphData[index]?.value ?? 0)} reps`}
+                              </SvgText>
+                              <SvgText
+                                x={point.x}
+                                y={kgY}
+                                fontSize="10"
+                                fill="#334155"
+                                textAnchor="middle"
+                              >
+                                {`${Math.round(graphData[index]?.maxWeightKg ?? 0)} kgs`}
+                              </SvgText>
+                            </G>
+                          );
+                        })
+                        : graphLayout.points.map((point, index) => (
+                          <SvgText
+                            key={`label-${point.date}`}
+                            x={point.x}
+                            y={Math.max(point.y - 8, 10)}
+                            fontSize="10"
+                            fill="#0F172A"
+                            textAnchor="middle"
+                          >
+                            {`${Math.round(graphData[index]?.value ?? 0)} ${graphUnit}`}
+                          </SvgText>
+                        ))}
                     </Svg>
                     <View style={[styles.graphLabelRow, { width: graphLayout.width }]}
                     >
@@ -521,9 +549,10 @@ const styles = StyleSheet.create({
   },
   graphModal: {
     width: '100%',
+    maxHeight: '88%',
     borderRadius: 16,
     backgroundColor: '#FFFFFF',
-    padding: 16,
+    padding: 18,
   },
   graphTitle: {
     fontSize: 16,
